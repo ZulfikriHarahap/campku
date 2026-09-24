@@ -4,9 +4,9 @@ Aplikasi Flutter untuk menjelajahi destinasi camping alam di Sumatera Utara:
 gunung, danau, air terjun, hutan, dan sungai.
 
 ## Fitur
-- Login & register dengan dua peran: **Pengguna** dan **Admin**
-- Beranda dengan pencarian, filter kategori, dan kartu destinasi
-- Detail destinasi (ketuk kartu) dan daftar favorit per akun
+- Masuk sebagai **Pengguna** atau **Admin** (akun admin statis); pendaftaran hanya untuk pengguna
+- Beranda dengan pencarian dan kartu kategori; ketuk kategori untuk membuka halaman daftar destinasinya
+- Detail destinasi, tombol "Lihat selengkapnya", dan daftar favorit per akun
 - Profil, dan daftar pengguna terdaftar khusus admin
 
 ## Akun demo
@@ -15,7 +15,7 @@ gunung, danau, air terjun, hutan, dan sungai.
 | Pengguna | user@campku.id | user123 |
 | Admin | admin@campku.id | admin123 |
 
-Untuk mendaftar sebagai admin, isi kode admin: `CAMPKU-ADMIN`.
+Akun admin bersifat statis (tetap) dan tidak bisa didaftarkan lewat aplikasi.
 
 > Data akun disimpan di memori (tanpa backend), jadi akun baru hilang saat aplikasi ditutup.
 
@@ -35,14 +35,17 @@ lib/
 ├── services/
 │   └── auth_service.dart          Login, register, role, dan favorit
 ├── widgets/
-│   └── destination_image.dart     Foto destinasi + ilustrasi cadangan
+│   ├── destination_image.dart     Foto destinasi + ilustrasi cadangan
+│   └── destination_card.dart      Kartu destinasi (dipakai ulang)
 └── screens/
     ├── auth/
     │   ├── auth_layout.dart       Kerangka & validator login/register
     │   ├── login_screen.dart
     │   └── register_screen.dart
     └── dashboard/
-        └── dashboard_screen.dart  Beranda, Favorit, dan Profil
+        ├── dashboard_screen.dart  Beranda, Favorit, dan Profil
+        ├── category_screen.dart   Daftar destinasi per kategori
+        └── destination_detail_screen.dart  Info lengkap destinasi
 ```
 
 ## Menjalankan

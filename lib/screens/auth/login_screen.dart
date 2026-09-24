@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  UserRole _role = UserRole.user;
   bool _obscure = true;
   bool _loading = false;
   String? _error;
@@ -36,7 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     await Future<void>.delayed(const Duration(milliseconds: 450));
     final error =
-        AuthService.login(email: _email.text, password: _password.text);
+        AuthService.login(
+      email: _email.text,
+      password: _password.text,
+      role: _role,
+    );
     if (!mounted) return;
     if (error != null) {
       setState(() {
@@ -50,14 +55,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _fillDemo(String email, String password) {
-    _email.text = email;
-    _password.text = password;
-    setState(() => _error = null);
+  void _selectRole(UserRole role) {
+    setState(() {
+      _role = role;
+      _error = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _role == UserRole.admin;
+
     return AuthLayout(
       title: 'Masuk ke CampKu',
       subtitle: 'Lanjutkan petualanganmu dan temukan spot camping berikutnya.',
@@ -66,6 +74,42 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'Masuk sebagai',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _RoleOption(
+                    icon: Icons.hiking,
+                    label: 'Pengguna',
+                    selected: !isAdmin,
+                    onTap: () => _selectRole(UserRole.user),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _RoleOption(
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: 'Admin',
+                    selected: isAdmin,
+                    onTap: () => _selectRole(UserRole.admin),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isAdmin
+                  ? 'Akun admin bersifat tetap.\n'
+                      'Email: ${AuthService.adminEmail}\n'
+                      'Kata sandi: ${AuthService.adminPassword}'
+                  : 'Masuk dengan akun pengguna yang sudah kamu daftarkan.',
+              style: const TextStyle(color: kTextMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
@@ -118,8 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     )
                   : const Text('Masuk'),
             ),
-            const SizedBox(height: 20),
-            _DemoAccounts(onPick: _fillDemo),
             const SizedBox(height: 12),
             Center(
               child: Wrap(
@@ -144,51 +186,55 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// Pintasan pengisian akun demo agar dosen/penguji bisa langsung mencoba.
-class _DemoAccounts extends StatelessWidget {
-  const _DemoAccounts({required this.onPick});
+class _RoleOption extends StatelessWidget {
+  const _RoleOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-  final void Function(String email, String password) onPick;
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Coba dengan akun demo',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+    final radius = BorderRadius.circular(14);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        color: selected ? kPrimary.withAlpha(18) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(
+            color: selected ? kPrimary : kBorder,
+            width: selected ? 1.8 : 1,
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              ActionChip(
-                avatar: const Icon(Icons.hiking, size: 18, color: kPrimary),
-                label: const Text('Pengguna'),
-                onPressed: () => onPick('user@campku.id', 'user123'),
-              ),
-              ActionChip(
-                avatar: const Icon(
-                  Icons.admin_panel_settings_outlined,
-                  size: 18,
-                  color: kPrimary,
+        ),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: [
+                Icon(icon, color: selected ? kPrimary : kTextMuted),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected ? kPrimary : kTextDark,
+                  ),
                 ),
-                label: const Text('Admin'),
-                onPressed: () => onPick('admin@campku.id', 'admin123'),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

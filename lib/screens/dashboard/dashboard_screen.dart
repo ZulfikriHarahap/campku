@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/widgets/destination_image.dart';
+import 'package:campku/widgets/destination_card.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
+import 'package:campku/screens/dashboard/category_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,10 +19,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _tab = 0; // 0 = Beranda, 1 = Favorit, 2 = Profil
-  int _category = 0; // 0 = Semua, selanjutnya urutan kCategories + 1
   String _query = '';
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey _resultsKey = GlobalKey(); // penanda header daftar hasil
 
   AppUser? get _user => AuthService.currentUser;
   Set<String> get _favorites => AuthService.favorites;
@@ -36,13 +36,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Destination> get _filtered {
     final q = _query.trim().toLowerCase();
     return kDestinations.where((d) {
-      final inCategory =
-          _category == 0 || d.category == kCategories[_category - 1].label;
-      final inQuery = q.isEmpty ||
+      return q.isEmpty ||
           d.name.toLowerCase().contains(q) ||
           d.location.toLowerCase().contains(q) ||
           d.category.toLowerCase().contains(q);
-      return inCategory && inQuery;
     }).toList();
   }
 
@@ -57,22 +54,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _query = '');
   }
 
-  /// Ketuk kategori untuk memilih, ketuk lagi untuk kembali ke semua.
-  void _selectCategory(int value) {
-    final selecting = _category != value;
-    setState(() => _category = selecting ? value : 0);
-    if (!selecting) return;
-    // Setelah daftar terfilter dibangun, gulir ke hasilnya.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _resultsKey.currentContext;
-      if (!mounted || ctx == null) return;
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-        alignment: 0.08,
-      );
-    });
+  /// Buka halaman yang menampilkan semua destinasi dalam satu kategori.
+  Future<void> _openCategory(Category c) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => CategoryScreen(category: c)),
+    );
+    // Favorit bisa berubah di halaman kategori (badge di navigasi bawah).
+    if (mounted) setState(() {});
   }
 
   Future<void> _openDetail(Destination d) async {
@@ -182,47 +170,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _homeTab() {
     final items = _filtered;
     final query = _query.trim();
-    final title = query.isNotEmpty
-        ? 'Hasil untuk "$query"'
-        : (_category == 0
-            ? 'Semua destinasi'
-            : kCategories[_category - 1].label);
+    final title =
+        query.isNotEmpty ? 'Hasil untuk "$query"' : 'Semua destinasi';
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _homeHeader()),
         SliverToBoxAdapter(child: _categoryCards()),
         SliverToBoxAdapter(
-          child: KeyedSubtree(
-            key: _resultsKey,
-            child: _sectionHeader(
-              title,
-              '${items.length} tempat',
-              action: _category == 0 || query.isNotEmpty
-                  ? null
-                  : TextButton(
-                      onPressed: () => setState(() => _category = 0),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: const Size(0, 32),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text('Lihat semua'),
-                    ),
-            ),
-          ),
+          child: _sectionHeader(title, '${items.length} tempat'),
         ),
         if (items.isEmpty)
           SliverToBoxAdapter(
             child: _emptyState(
               icon: Icons.search_off,
               title: 'Destinasi tidak ditemukan',
-              message: 'Coba kata kunci lain atau pilih kategori Semua.',
+              message: 'Coba kata kunci lain atau pilih salah satu kategori.',
               actionLabel: 'Reset pencarian',
-              onAction: () {
-                _clearSearch();
-                setState(() => _category = 0);
-              },
+              onAction: _clearSearch,
             ),
           )
         else
@@ -369,16 +334,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _categoryCard(int index) {
     final c = kCategories[index];
-    final selected = _category == index + 1;
     final inCategory = kDestinations.where((d) => d.category == c.label);
     final count = inCategory.length;
 
     return Semantics(
       button: true,
-      selected: selected,
-      label: 'Kategori ${c.label}, $count destinasi',
+      label: 'Buka kategori ${c.label}, $count destinasi',
       child: Card(
-        elevation: selected ? 3 : 1,
+        elevation: 1.5,
         color: kCardBg,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black26,
@@ -386,13 +349,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: selected ? kPrimary : kBorder,
-            width: selected ? 2 : 1,
-          ),
+          side: const BorderSide(color: kBorder),
         ),
         child: InkWell(
-          onTap: () => _selectCategory(index + 1),
+          onTap: () => _openCategory(c),
           child: SizedBox(
             height: 96,
             child: Row(
@@ -453,10 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: Icon(
-                    selected ? Icons.check_circle : Icons.chevron_right,
-                    color: selected ? kPrimary : kTextMuted,
-                  ),
+                  child: const Icon(Icons.chevron_right, color: kTextMuted),
                 ),
               ],
             ),
@@ -466,7 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _sectionHeader(String title, String trailing, {Widget? action}) {
+  Widget _sectionHeader(String title, String trailing) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
       child: Row(
@@ -483,7 +440,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           Text(trailing, style: const TextStyle(color: kTextMuted)),
-          if (action != null) action,
         ],
       ),
     );
@@ -770,200 +726,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           childAspectRatio: 0.56,
         ),
         itemCount: items.length,
-        itemBuilder: (context, i) => _destinationCard(items[i]),
-      ),
-    );
-  }
-
-  Widget _destinationCard(Destination d) {
-    final fav = _favorites.contains(d.slug);
-    return Card(
-      elevation: 1.5,
-      color: kCardBg,
-      surfaceTintColor: Colors.transparent,
-      shadowColor: Colors.black26,
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: InkWell(
-        onTap: () => _showDetail(d),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  DestinationImage(destination: d),
-                  Positioned(
-                    left: 8,
-                    top: 10,
-                    right: 48,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _badge(d),
-                    ),
-                  ),
-                  Positioned(
-                    right: 4,
-                    top: 4,
-                    child: _favoriteButton(d, fav),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    d.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.5,
-                      height: 1.2,
-                      color: kTextDark,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.place_outlined,
-                        size: 14,
-                        color: kTextMuted,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          d.city,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: kTextMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          d.priceShort,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: kAccentText,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.star_rounded, size: 16, color: kAccent),
-                      const SizedBox(width: 2),
-                      Text(
-                        d.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 32,
-                    child: OutlinedButton(
-                      onPressed: () => _openDetail(d),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: const Size(0, 32),
-                        foregroundColor: kPrimary,
-                        side: BorderSide(color: kPrimary.withAlpha(90)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Lihat selengkapnya',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_rounded, size: 14),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _badge(Destination d) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(150),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(d.badgeIcon, size: 12, color: Colors.white),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              d.badge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _favoriteButton(Destination d, bool fav) {
-    return IconButton(
-      tooltip: fav ? 'Hapus dari favorit' : 'Simpan ke favorit',
-      onPressed: () => _toggleFavorite(d),
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withAlpha(235),
-        minimumSize: const Size(36, 36),
-        padding: EdgeInsets.zero,
-      ),
-      icon: Icon(
-        fav ? Icons.favorite : Icons.favorite_border,
-        size: 20,
-        color: fav ? const Color(0xFFD64545) : kTextDark,
+        itemBuilder: (context, i) {
+          final d = items[i];
+          return DestinationCard(
+            destination: d,
+            isFavorite: _favorites.contains(d.slug),
+            onTap: () => _showDetail(d),
+            onDetail: () => _openDetail(d),
+            onToggleFavorite: () => _toggleFavorite(d),
+          );
+        },
       ),
     );
   }

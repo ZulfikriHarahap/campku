@@ -18,9 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  final _adminCode = TextEditingController();
 
-  UserRole _role = UserRole.user;
   bool _obscure = true;
   bool _loading = false;
   String? _error;
@@ -31,7 +29,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _email.dispose();
     _password.dispose();
     _confirm.dispose();
-    _adminCode.dispose();
     super.dispose();
   }
 
@@ -46,8 +43,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       name: _name.text,
       email: _email.text,
       password: _password.text,
-      role: _role,
-      adminCodeInput: _adminCode.text,
     );
     if (!mounted) return;
     if (error != null) {
@@ -66,8 +61,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _role == UserRole.admin;
-
     return AuthLayout(
       showBack: true,
       title: 'Buat akun baru',
@@ -77,39 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Daftar sebagai',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _RoleOption(
-                    icon: Icons.hiking,
-                    label: 'Pengguna',
-                    selected: !isAdmin,
-                    onTap: () => setState(() => _role = UserRole.user),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _RoleOption(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: 'Admin',
-                    selected: isAdmin,
-                    onTap: () => setState(() => _role = UserRole.admin),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isAdmin
-                  ? 'Admin bisa melihat daftar pengguna yang terdaftar.'
-                  : 'Pengguna bisa menjelajah destinasi dan menyimpan favorit.',
-              style: const TextStyle(color: kTextMuted, fontSize: 13),
-            ),
+            const _UserOnlyNote(),
             const SizedBox(height: 20),
             TextFormField(
               controller: _name,
@@ -162,37 +123,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             TextFormField(
               controller: _confirm,
               obscureText: _obscure,
-              textInputAction:
-                  isAdmin ? TextInputAction.next : TextInputAction.done,
+              textInputAction: TextInputAction.done,
               decoration: fieldDecoration(
                 label: 'Ulangi kata sandi',
                 icon: Icons.lock_reset_outlined,
               ),
               validator: (v) =>
                   v != _password.text ? 'Kata sandi belum sama.' : null,
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              alignment: Alignment.topCenter,
-              child: isAdmin
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: TextFormField(
-                        controller: _adminCode,
-                        textInputAction: TextInputAction.done,
-                        autocorrect: false,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: fieldDecoration(
-                          label: 'Kode admin',
-                          icon: Icons.vpn_key_outlined,
-                          helper: 'Kode demo: ${AuthService.adminCode}',
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Masukkan kode admin.'
-                            : null,
-                      ),
-                    )
-                  : const SizedBox(width: double.infinity),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
@@ -232,55 +169,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-class _RoleOption extends StatelessWidget {
-  const _RoleOption({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+/// Penjelasan singkat: pendaftaran hanya membuat akun pengguna.
+class _UserOnlyNote extends StatelessWidget {
+  const _UserOnlyNote();
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(14);
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      child: Material(
-        color: selected ? kPrimary.withAlpha(18) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(
-            color: selected ? kPrimary : kBorder,
-            width: selected ? 1.8 : 1,
-          ),
-        ),
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Column(
-              children: [
-                Icon(icon, color: selected ? kPrimary : kTextMuted),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: selected ? kPrimary : kTextDark,
-                  ),
-                ),
-              ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kPrimary.withAlpha(18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.hiking, size: 20, color: kPrimary),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Akun baru terdaftar sebagai Pengguna: jelajahi destinasi dan simpan favorit.',
+              style: TextStyle(color: kPrimary, fontSize: 13, height: 1.35),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

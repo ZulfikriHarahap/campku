@@ -28,14 +28,15 @@ class AppUser {
 class AuthService {
   AuthService._();
 
-  /// Kode yang harus diisi untuk mendaftar sebagai admin (khusus demo).
-  static const String adminCode = 'CAMPKU-ADMIN';
+  /// Akun admin bersifat statis: tetap, dan tidak bisa dibuat lewat pendaftaran.
+  static const String adminEmail = 'admin@campku.id';
+  static const String adminPassword = 'admin123';
 
   static final List<AppUser> _users = [
     const AppUser(
       name: 'Admin CampKu',
-      email: 'admin@campku.id',
-      password: 'admin123',
+      email: adminEmail,
+      password: adminPassword,
       role: UserRole.admin,
     ),
     const AppUser(
@@ -59,12 +60,26 @@ class AuthService {
   static String _normalize(String email) => email.trim().toLowerCase();
 
   /// Mengembalikan pesan error, atau `null` jika berhasil.
-  static String? login({required String email, required String password}) {
+  ///
+  /// [role] adalah peran yang dipilih di halaman masuk dan harus cocok dengan
+  /// peran akunnya.
+  static String? login({
+    required String email,
+    required String password,
+    required UserRole role,
+  }) {
     final matches = _users.where((u) => u.email == _normalize(email));
     if (matches.isEmpty) {
-      return 'Email belum terdaftar. Daftar dulu untuk membuat akun.';
+      return role == UserRole.admin
+          ? 'Email admin tidak dikenali. Gunakan akun admin yang tersedia.'
+          : 'Email belum terdaftar. Daftar dulu untuk membuat akun.';
     }
     final user = matches.first;
+    if (user.role != role) {
+      return user.isAdmin
+          ? 'Ini akun admin. Pilih "Admin" di atas lalu coba masuk lagi.'
+          : 'Ini akun pengguna. Pilih "Pengguna" di atas lalu coba masuk lagi.';
+    }
     if (user.password != password) {
       return 'Kata sandi salah. Periksa lagi lalu coba masuk.';
     }
@@ -72,25 +87,22 @@ class AuthService {
     return null;
   }
 
+  /// Pendaftaran hanya untuk pengguna; akun admin tidak bisa didaftarkan.
+  ///
   /// Mengembalikan pesan error, atau `null` jika berhasil (otomatis masuk).
   static String? register({
     required String name,
     required String email,
     required String password,
-    required UserRole role,
-    String adminCodeInput = '',
   }) {
     if (_users.any((u) => u.email == _normalize(email))) {
       return 'Email sudah dipakai. Masuk atau gunakan email lain.';
-    }
-    if (role == UserRole.admin && adminCodeInput.trim() != adminCode) {
-      return 'Kode admin tidak sesuai. Periksa kode lalu coba lagi.';
     }
     final user = AppUser(
       name: name.trim(),
       email: _normalize(email),
       password: password,
-      role: role,
+      role: UserRole.user,
     );
     _users.add(user);
     currentUser = user;
