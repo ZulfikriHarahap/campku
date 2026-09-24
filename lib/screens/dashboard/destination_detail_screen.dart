@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/widgets/booking_button.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/data/destinations_data.dart';
 
@@ -165,13 +166,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  FilledButton.icon(
-                    onPressed: _toggleFavorite,
-                    icon: Icon(_fav ? Icons.favorite : Icons.favorite_border),
-                    label: Text(
-                      _fav ? 'Hapus dari favorit' : 'Simpan ke favorit',
-                    ),
-                  ),
+                  BookingButton(destination: d),
                 ],
               ),
             ),

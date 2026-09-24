@@ -5,6 +5,7 @@ import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
+import 'package:campku/widgets/booking_button.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
@@ -753,9 +754,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (ctx, setSheet) {
-            final fav = _favorites.contains(d.slug);
+        return Builder(
+          builder: (ctx) {
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -881,18 +881,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () {
-                            _toggleFavorite(d);
-                            setSheet(() {});
-                          },
-                          icon: Icon(
-                            fav ? Icons.favorite : Icons.favorite_border,
-                          ),
-                          label: Text(
-                            fav ? 'Hapus dari favorit' : 'Simpan ke favorit',
-                          ),
-                        ),
+                        BookingButton(destination: d),
                       ],
                     ),
                   ),
