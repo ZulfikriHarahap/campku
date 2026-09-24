@@ -6,6 +6,7 @@ import 'package:campku/services/auth_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
+import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _category = 0; // 0 = Semua, selanjutnya urutan kCategories + 1
   String _query = '';
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey _resultsKey = GlobalKey(); // penanda header daftar hasil
 
   AppUser? get _user => AuthService.currentUser;
   Set<String> get _favorites => AuthService.favorites;
@@ -53,6 +55,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _clearSearch() {
     _searchController.clear();
     setState(() => _query = '');
+  }
+
+  /// Ketuk kategori untuk memilih, ketuk lagi untuk kembali ke semua.
+  void _selectCategory(int value) {
+    final selecting = _category != value;
+    setState(() => _category = selecting ? value : 0);
+    if (!selecting) return;
+    // Setelah daftar terfilter dibangun, gulir ke hasilnya.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _resultsKey.currentContext;
+      if (!mounted || ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: 0.08,
+      );
+    });
+  }
+
+  Future<void> _openDetail(Destination d) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DestinationDetailScreen(destination: d),
+      ),
+    );
+    // Status favorit bisa berubah di halaman detail.
+    if (mounted) setState(() {});
   }
 
   Future<void> _confirmLogout() async {
@@ -161,9 +191,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _homeHeader()),
-        SliverToBoxAdapter(child: _categoryChips()),
+        SliverToBoxAdapter(child: _categoryCards()),
         SliverToBoxAdapter(
-          child: _sectionHeader(title, '${items.length} tempat'),
+          child: KeyedSubtree(
+            key: _resultsKey,
+            child: _sectionHeader(
+              title,
+              '${items.length} tempat',
+              action: _category == 0 || query.isNotEmpty
+                  ? null
+                  : TextButton(
+                      onPressed: () => setState(() => _category = 0),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('Lihat semua'),
+                    ),
+            ),
+          ),
         ),
         if (items.isEmpty)
           SliverToBoxAdapter(
@@ -267,8 +314,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 18),
           _searchField(),
-          const SizedBox(height: 16),
-          _statsRow(),
         ],
       ),
     );
@@ -300,92 +345,128 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _statsRow() {
-    final avg = kDestinations.fold<double>(0, (sum, d) => sum + d.rating) /
-        kDestinations.length;
-
-    Widget stat(String value, String label) {
-      return Expanded(
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withAlpha(210),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(26),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(46)),
-      ),
-      child: Row(
+  /// Daftar kategori berupa kartu horizontal yang tersusun ke bawah.
+  Widget _categoryCards() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          stat('${kDestinations.length}', 'Destinasi'),
-          stat('${kCategories.length}', 'Kategori'),
-          stat(avg.toStringAsFixed(1), 'Rata-rata'),
+          Text(
+            'Pilih kategori',
+            style:
+                Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+          ),
+          const SizedBox(height: 12),
+          for (var i = 0; i < kCategories.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _categoryCard(i),
+          ],
         ],
       ),
     );
   }
 
-  Widget _categoryChips() {
-    final labels = <String>['Semua', ...kCategories.map((c) => c.label)];
-    final icons = <IconData>[Icons.apps, ...kCategories.map((c) => c.icon)];
+  Widget _categoryCard(int index) {
+    final c = kCategories[index];
+    final selected = _category == index + 1;
+    final inCategory = kDestinations.where((d) => d.category == c.label);
+    final count = inCategory.length;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: SizedBox(
-        height: 40,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: labels.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8),
-          itemBuilder: (context, i) {
-            final selected = i == _category;
-            return ChoiceChip(
-              avatar: Icon(
-                icons[i],
-                size: 18,
-                color: selected ? Colors.white : kPrimary,
-              ),
-              label: Text(labels[i]),
-              selected: selected,
-              showCheckmark: false,
-              onSelected: (_) => setState(() => _category = i),
-              selectedColor: kPrimary,
-              backgroundColor: Colors.white,
-              side: BorderSide(color: selected ? kPrimary : kBorder),
-              shape: const StadiumBorder(),
-              labelStyle: TextStyle(
-                color: selected ? Colors.white : kTextDark,
-                fontWeight: FontWeight.w600,
-              ),
-            );
-          },
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Kategori ${c.label}, $count destinasi',
+      child: Card(
+        elevation: selected ? 3 : 1,
+        color: kCardBg,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black26,
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: selected ? kPrimary : kBorder,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: () => _selectCategory(index + 1),
+          child: SizedBox(
+            height: 96,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 112,
+                  height: double.infinity,
+                  child: DestinationImage(destination: inCategory.first),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 8, 0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(c.icon, size: 18, color: kPrimary),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                c.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: kTextDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          c.tagline,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: kTextMuted,
+                            fontSize: 12.5,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$count destinasi',
+                          style: const TextStyle(
+                            color: kAccentText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(
+                    selected ? Icons.check_circle : Icons.chevron_right,
+                    color: selected ? kPrimary : kTextMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader(String title, String trailing) {
+  Widget _sectionHeader(String title, String trailing, {Widget? action}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
       child: Row(
@@ -402,6 +483,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           Text(trailing, style: const TextStyle(color: kTextMuted)),
+          if (action != null) action,
         ],
       ),
     );
@@ -685,7 +767,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           maxCrossAxisExtent: 240,
           mainAxisSpacing: 14,
           crossAxisSpacing: 14,
-          childAspectRatio: 0.68,
+          childAspectRatio: 0.56,
         ),
         itemCount: items.length,
         itemBuilder: (context, i) => _destinationCard(items[i]),
@@ -794,6 +876,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 32,
+                    child: OutlinedButton(
+                      onPressed: () => _openDetail(d),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                        foregroundColor: kPrimary,
+                        side: BorderSide(color: kPrimary.withAlpha(90)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Lihat selengkapnya',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_rounded, size: 14),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -970,6 +1088,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            _openDetail(d);
+                          },
+                          icon: const Icon(Icons.info_outline),
+                          label: const Text('Lihat selengkapnya'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            foregroundColor: kPrimary,
+                            side: BorderSide(color: kPrimary.withAlpha(120)),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         FilledButton.icon(
                           onPressed: () {
                             _toggleFavorite(d);
