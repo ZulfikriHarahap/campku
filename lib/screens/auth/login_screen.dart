@@ -100,15 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              isAdmin
-                  ? 'Akun admin bersifat tetap.\n'
-                      'Email: ${AuthService.adminEmail}\n'
-                      'Kata sandi: ${AuthService.adminPassword}'
-                  : 'Masuk dengan akun pengguna yang sudah kamu daftarkan.',
-              style: const TextStyle(color: kTextMuted, fontSize: 13),
-            ),
+
             const SizedBox(height: 20),
             TextFormField(
               controller: _email,

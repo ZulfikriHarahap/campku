@@ -110,4 +110,12 @@ class AuthService {
   }
 
   static void logout() => currentUser = null;
+
+  /// Menghapus destinasi dari favorit semua akun. Dipanggil saat admin
+  /// menghapus destinasi supaya tidak ada favorit yang menunjuk ke data hilang.
+  static void forgetDestination(String slug) {
+    for (final slugs in _favorites.values) {
+      slugs.remove(slug);
+    }
+  }
 }

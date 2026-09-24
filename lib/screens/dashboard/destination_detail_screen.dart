@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/destination_service.dart';
 import 'package:campku/widgets/booking_button.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/data/destinations_data.dart';
+import 'package:campku/screens/admin/admin_actions.dart';
 
 /// Halaman "Lihat selengkapnya": info lengkap satu destinasi.
 class DestinationDetailScreen extends StatefulWidget {
@@ -18,8 +20,50 @@ class DestinationDetailScreen extends StatefulWidget {
 }
 
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
-  Destination get d => widget.destination;
+  final DestinationService _destinations = DestinationService.instance;
+
+  /// Selalu ambil data terbaru supaya hasil edit admin langsung tampil.
+  Destination get d =>
+      _destinations.findBySlug(widget.destination.slug) ?? widget.destination;
   bool get _fav => AuthService.favorites.contains(d.slug);
+  bool get _isAdmin => AuthService.currentUser?.isAdmin ?? false;
+
+  @override
+  void initState() {
+    super.initState();
+    _destinations.addListener(_onDestinationsChanged);
+  }
+
+  @override
+  void dispose() {
+    _destinations.removeListener(_onDestinationsChanged);
+    super.dispose();
+  }
+
+  void _onDestinationsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _edit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await openDestinationForm(context, existing: d);
+    if (saved == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${saved.name} diperbarui')));
+  }
+
+  Future<void> _delete() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final name = d.name;
+    final deleted = await confirmDeleteDestination(context, d);
+    if (!deleted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$name dihapus')));
+    navigator.pop();
+  }
 
   void _toggleFavorite() {
     setState(() {
@@ -53,6 +97,30 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
             ),
             actions: [
+              if (_isAdmin) ...[
+                Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: IconButton(
+                    tooltip: 'Edit destinasi',
+                    onPressed: _edit,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withAlpha(235),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, color: kTextDark),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: IconButton(
+                    tooltip: 'Hapus destinasi',
+                    onPressed: _delete,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withAlpha(235),
+                    ),
+                    icon: const Icon(Icons.delete_outline, color: kError),
+                  ),
+                ),
+              ],
               Padding(
                 padding: const EdgeInsets.all(4),
                 child: IconButton(

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/destination_service.dart';
 import 'package:campku/widgets/destination_card.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
@@ -19,11 +20,28 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
+  final DestinationService _destinations = DestinationService.instance;
+
   Category get _category => widget.category;
   Set<String> get _favorites => AuthService.favorites;
 
-  List<Destination> get _items =>
-      kDestinations.where((d) => d.category == _category.label).toList();
+  List<Destination> get _items => _destinations.byCategory(_category.label);
+
+  @override
+  void initState() {
+    super.initState();
+    _destinations.addListener(_onDestinationsChanged);
+  }
+
+  @override
+  void dispose() {
+    _destinations.removeListener(_onDestinationsChanged);
+    super.dispose();
+  }
+
+  void _onDestinationsChanged() {
+    if (mounted) setState(() {});
+  }
 
   void _toggleFavorite(Destination d) {
     setState(() {
@@ -50,7 +68,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
         body: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _header(items.length)),
-            SliverPadding(
+            if (items.isEmpty)
+              const SliverToBoxAdapter(child: _EmptyCategory())
+            else
+              SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               sliver: SliverGrid.builder(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -144,6 +165,39 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tampil saat sebuah kategori belum punya destinasi (mis. dihapus admin).
+class _EmptyCategory extends StatelessWidget {
+  const _EmptyCategory();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+      child: Column(
+        children: [
+          Icon(Icons.landscape_outlined, size: 56, color: kTextMuted),
+          SizedBox(height: 16),
+          Text(
+            'Belum ada destinasi di kategori ini',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: kTextDark,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Destinasi baru akan muncul di sini setelah ditambahkan admin.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: kTextMuted, height: 1.4),
           ),
         ],
       ),

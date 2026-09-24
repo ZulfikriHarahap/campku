@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/destination_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
 import 'package:campku/widgets/booking_button.dart';
@@ -10,6 +11,7 @@ import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 import 'package:campku/screens/dashboard/category_screen.dart';
+import 'package:campku/screens/admin/admin_destinations_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,24 +21,42 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _tab = 0; // 0 = Beranda, 1 = Favorit, 2 = Profil
+  int _tab = 0; // 0 = Beranda, 1 = Favorit, lalu Kelola (admin) dan Profil
   String _query = '';
   final TextEditingController _searchController = TextEditingController();
 
+  final DestinationService _destinations = DestinationService.instance;
+
   AppUser? get _user => AuthService.currentUser;
   Set<String> get _favorites => AuthService.favorites;
+  bool get _isAdmin => _user?.isAdmin ?? false;
+
+  /// Admin punya tab tambahan "Kelola" di antara Favorit dan Profil.
+  int get _profileIndex => _isAdmin ? 3 : 2;
+
+  @override
+  void initState() {
+    super.initState();
+    // Muat ulang tampilan saat admin menambah/mengubah/menghapus destinasi.
+    _destinations.addListener(_onDestinationsChanged);
+  }
 
   @override
   void dispose() {
+    _destinations.removeListener(_onDestinationsChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onDestinationsChanged() {
+    if (mounted) setState(() {});
   }
 
   // ── STATE HELPERS ─────────────────────────
 
   List<Destination> get _filtered {
     final q = _query.trim().toLowerCase();
-    return kDestinations.where((d) {
+    return _destinations.all.where((d) {
       return q.isEmpty ||
           d.name.toLowerCase().contains(q) ||
           d.location.toLowerCase().contains(q) ||
@@ -110,7 +130,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Scaffold(
         body: IndexedStack(
           index: _tab,
-          children: [_homeTab(), _favoritesTab(), _profileTab()],
+          children: [
+            _homeTab(),
+            _favoritesTab(),
+            if (_isAdmin) const AdminDestinationsScreen(),
+            _profileTab(),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
@@ -133,6 +158,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               selectedIcon: const Icon(Icons.favorite, color: kPrimary),
               label: 'Favorit',
             ),
+            if (_isAdmin)
+              const NavigationDestination(
+                icon: Icon(Icons.dashboard_customize_outlined),
+                selectedIcon: Icon(Icons.dashboard_customize, color: kPrimary),
+                label: 'Kelola',
+              ),
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person, color: kPrimary),
@@ -244,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: 'Buka profil',
                 child: InkWell(
                   customBorder: const CircleBorder(),
-                  onTap: () => setState(() => _tab = 2),
+                  onTap: () => setState(() => _tab = _profileIndex),
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: CircleAvatar(
@@ -335,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _categoryCard(int index) {
     final c = kCategories[index];
-    final inCategory = kDestinations.where((d) => d.category == c.label);
+    final inCategory = _destinations.byCategory(c.label);
     final count = inCategory.length;
 
     return Semantics(
@@ -361,7 +392,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 SizedBox(
                   width: 112,
                   height: double.infinity,
-                  child: DestinationImage(destination: inCategory.first),
+                  // Kategori bisa kosong jika admin menghapus semua isinya.
+                  child: inCategory.isEmpty
+                      ? LandscapeArt(category: c.label)
+                      : DestinationImage(destination: inCategory.first),
                 ),
                 Expanded(
                   child: Padding(
@@ -450,7 +484,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _favoritesTab() {
     final items =
-        kDestinations.where((d) => _favorites.contains(d.slug)).toList();
+        _destinations.all.where((d) => _favorites.contains(d.slug)).toList();
 
     return CustomScrollView(
       slivers: [
@@ -578,7 +612,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Expanded(
                     child: _statTile(
                       Icons.place_outlined,
-                      '${kDestinations.length}',
+                      '${_destinations.count}',
                       'Destinasi tersedia',
                     ),
                   ),
