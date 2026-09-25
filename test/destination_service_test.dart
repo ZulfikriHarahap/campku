@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:campku/data/destinations_data.dart';
+import 'package:campku/data/camp_data.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/services/destination_service.dart';
+import 'package:campku/services/camp_service.dart';
+import 'package:campku/services/tent_service.dart';
 
 Destination _sample({
   String slug = 'bukit_contoh',
@@ -14,18 +16,7 @@ Destination _sample({
     slug: slug,
     name: name,
     category: category,
-    location: 'Karo, Sumatera Utara',
-    rating: 4.5,
-    priceLabel: 'Mulai Rp 10.000',
-    badge: 'Baru',
-    badgeIcon: Icons.star,
     description: 'Bukit contoh untuk pengujian layanan destinasi.',
-    about: 'Penjelasan lengkap bukit contoh untuk pengujian.',
-    activities: const ['Mendaki'],
-    bestTime: 'Musim kemarau',
-    access: 'Dari Medan sekitar 2 jam berkendara',
-    facilities: const ['Warung'],
-    tips: const ['Bawa jas hujan'],
   );
 }
 
@@ -39,92 +30,115 @@ void _loginAsAdmin() {
 }
 
 void main() {
-  final service = DestinationService.instance;
+  final destinations = DestinationService.instance;
+  final camps = CampService.instance;
+  final tents = TentService.instance;
 
   setUp(() {
     AuthService.logout();
-    service.reset();
+    destinations.reset();
+    camps.reset();
+    tents.reset();
   });
 
   group('DestinationService - baca', () {
     test('data awal sama dengan kDestinations', () {
-      expect(service.count, kDestinations.length);
-      expect(service.findBySlug('sibayak')?.name, 'Gunung Sibayak');
-      expect(service.findBySlug('tidak_ada'), isNull);
+      expect(destinations.count, kDestinations.length);
+      expect(destinations.findBySlug('sibayak')?.name, 'Gunung Sibayak');
+      expect(destinations.findBySlug('tidak_ada'), isNull);
     });
 
     test('byCategory hanya mengembalikan kategori yang diminta', () {
-      final gunung = service.byCategory('Gunung');
+      final gunung = destinations.byCategory('Gunung');
       expect(gunung, isNotEmpty);
       expect(gunung.every((d) => d.category == 'Gunung'), isTrue);
     });
 
     test('nameTaken tidak membedakan huruf besar/kecil', () {
-      expect(service.nameTaken('  gunung   SIBAYAK '), isTrue);
-      expect(service.nameTaken('Gunung Sibayak', exceptSlug: 'sibayak'),
-          isFalse);
-      expect(service.nameTaken('Nama Baru'), isFalse);
+      expect(destinations.nameTaken('  gunung   SIBAYAK '), isTrue);
+      expect(
+        destinations.nameTaken('Gunung Sibayak', exceptSlug: 'sibayak'),
+        isFalse,
+      );
+      expect(destinations.nameTaken('Nama Baru'), isFalse);
     });
 
     test('slugify dan uniqueSlug menghasilkan slug yang aman', () {
       expect(DestinationService.slugify('  Danau Toba!! '), 'danau_toba');
       expect(DestinationService.slugify('???'), 'destinasi');
-      expect(service.uniqueSlug('Gunung Sibayak'), 'gunung_sibayak');
-      expect(service.uniqueSlug('Sibayak'), 'sibayak_2');
+      expect(destinations.uniqueSlug('Gunung Sibayak'), 'gunung_sibayak');
+      expect(destinations.uniqueSlug('Sibayak'), 'sibayak_2');
     });
   });
 
   group('DestinationService - CRUD admin', () {
-    test('tambah destinasi masuk ke akhir kelompok kategorinya', () {
+    test('tambah destinasi baru', () {
       _loginAsAdmin();
       var notified = 0;
-      service.addListener(() => notified++);
+      destinations.addListener(() => notified++);
 
-      service.add(_sample());
+      destinations.add(_sample());
 
-      final gunung = service.byCategory('Gunung');
-      expect(gunung.last.slug, 'bukit_contoh');
-      expect(service.count, kDestinations.length + 1);
+      expect(destinations.findBySlug('bukit_contoh'), isNotNull);
+      expect(destinations.count, kDestinations.length + 1);
       expect(notified, 1);
     });
 
     test('slug yang sama tidak boleh ditambahkan dua kali', () {
       _loginAsAdmin();
-      service.add(_sample());
-      expect(() => service.add(_sample()), throwsArgumentError);
+      destinations.add(_sample());
+      expect(() => destinations.add(_sample()), throwsArgumentError);
     });
 
     test('update mengganti data tanpa mengubah urutan', () {
       _loginAsAdmin();
-      final index = service.all.indexWhere((d) => d.slug == 'sibayak');
+      final index = destinations.all.indexWhere((d) => d.slug == 'sibayak');
 
-      service.update(_sample(slug: 'sibayak', name: 'Sibayak Baru'));
+      destinations.update(_sample(slug: 'sibayak', name: 'Sibayak Baru'));
 
-      expect(service.all[index].name, 'Sibayak Baru');
-      expect(service.count, kDestinations.length);
+      expect(destinations.all[index].name, 'Sibayak Baru');
+      expect(destinations.count, kDestinations.length);
     });
 
     test('update slug yang tidak ada melempar error', () {
       _loginAsAdmin();
-      expect(() => service.update(_sample(slug: 'hantu')), throwsArgumentError);
+      expect(
+        () => destinations.update(_sample(slug: 'hantu')),
+        throwsArgumentError,
+      );
     });
 
     test('hapus menghilangkan destinasi dan favoritnya', () {
       _loginAsAdmin();
       AuthService.favorites.add('sibayak');
 
-      expect(service.delete('sibayak'), isTrue);
+      expect(destinations.delete('sibayak'), isTrue);
 
-      expect(service.findBySlug('sibayak'), isNull);
+      expect(destinations.findBySlug('sibayak'), isNull);
       expect(AuthService.favorites.contains('sibayak'), isFalse);
-      expect(service.delete('sibayak'), isFalse);
+      expect(destinations.delete('sibayak'), isFalse);
+    });
+
+    test('hapus destinasi ikut menghapus camp dan tipe tendanya', () {
+      _loginAsAdmin();
+      expect(camps.byDestination('sibayak'), isNotEmpty);
+      final campIds =
+          camps.byDestination('sibayak').map((c) => c.id).toList();
+      expect(campIds.any((id) => tents.byCamp(id).isNotEmpty), isTrue);
+
+      destinations.delete('sibayak');
+
+      expect(camps.byDestination('sibayak'), isEmpty);
+      for (final id in campIds) {
+        expect(tents.byCamp(id), isEmpty);
+      }
     });
   });
 
   group('DestinationService - hak akses', () {
     test('tanpa login tidak bisa mengubah data', () {
-      expect(() => service.add(_sample()), throwsStateError);
-      expect(() => service.delete('sibayak'), throwsStateError);
+      expect(() => destinations.add(_sample()), throwsStateError);
+      expect(() => destinations.delete('sibayak'), throwsStateError);
     });
 
     test('pengguna biasa tidak bisa mengubah data', () {
@@ -135,10 +149,13 @@ void main() {
       );
       expect(error, isNull);
 
-      expect(() => service.add(_sample()), throwsStateError);
-      expect(() => service.update(_sample(slug: 'sibayak')), throwsStateError);
-      expect(() => service.delete('sibayak'), throwsStateError);
-      expect(service.count, kDestinations.length);
+      expect(() => destinations.add(_sample()), throwsStateError);
+      expect(
+        () => destinations.update(_sample(slug: 'sibayak')),
+        throwsStateError,
+      );
+      expect(() => destinations.delete('sibayak'), throwsStateError);
+      expect(destinations.count, kDestinations.length);
     });
   });
 }

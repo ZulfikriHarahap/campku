@@ -2,16 +2,15 @@ import 'package:flutter/foundation.dart';
 
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/camp_service.dart';
 
-/// Penyimpanan destinasi di memori yang bisa diubah oleh admin (CRUD).
+/// Penyimpanan destinasi di memori yang bisa diubah oleh admin (FR-08).
 ///
 /// Data awal berasal dari [kDestinations]. Seperti [AuthService], perubahan
-/// hanya bertahan selama aplikasi berjalan karena belum ada backend/database.
-/// Layar yang menampilkan destinasi cukup memanggil [addListener] supaya ikut
-/// diperbarui ketika admin menambah, mengubah, atau menghapus destinasi.
-///
-/// Langkah berikutnya: ganti isi [add], [update], dan [delete] dengan
-/// `shared_preferences`, SQLite, atau Firebase Firestore.
+/// hanya bertahan selama aplikasi berjalan karena belum ada database
+/// (lihat catatan `sqflite` di README). Layar yang menampilkan destinasi
+/// cukup memanggil [addListener] supaya ikut diperbarui ketika admin
+/// menambah, mengubah, atau menghapus destinasi.
 class DestinationService extends ChangeNotifier {
   DestinationService._();
 
@@ -48,7 +47,7 @@ class DestinationService extends ChangeNotifier {
       s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
   /// Mengubah nama menjadi slug, contoh: "Danau Toba!" -> "danau_toba".
-  /// Slug dipakai sebagai kunci favorit dan nama file foto.
+  /// Slug dipakai sebagai kunci favorit, relasi Camp, dan nama file foto.
   static String slugify(String name) {
     final slug = name
         .toLowerCase()
@@ -71,19 +70,12 @@ class DestinationService extends ChangeNotifier {
 
   // ── CREATE / UPDATE / DELETE (khusus admin) ─
 
-  /// Menambah destinasi baru. Diletakkan di akhir kelompok kategorinya agar
-  /// urutan daftar tetap rapi per kategori.
   Destination add(Destination d) {
     _requireAdmin();
     if (findBySlug(d.slug) != null) {
       throw ArgumentError('Slug "${d.slug}" sudah dipakai.');
     }
-    final last = _items.lastIndexWhere((e) => e.category == d.category);
-    if (last == -1) {
-      _items.add(d);
-    } else {
-      _items.insert(last + 1, d);
-    }
+    _items.add(d);
     notifyListeners();
     return d;
   }
@@ -99,7 +91,8 @@ class DestinationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Menghapus destinasi (dan menghapusnya dari favorit semua akun).
+  /// Menghapus destinasi beserta seluruh camp (dan tipe tendanya) yang
+  /// terhubung, dan menghapusnya dari favorit semua akun.
   /// Mengembalikan `false` jika slug tidak ditemukan.
   bool delete(String slug) {
     _requireAdmin();
@@ -107,6 +100,7 @@ class DestinationService extends ChangeNotifier {
     _items.removeWhere((d) => d.slug == slug);
     if (_items.length == before) return false;
     AuthService.forgetDestination(slug);
+    CampService.instance.deleteByDestination(slug);
     notifyListeners();
     return true;
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/services/destination_service.dart';
+import 'package:campku/services/camp_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/screens/admin/admin_actions.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
@@ -21,6 +22,7 @@ class AdminDestinationsScreen extends StatefulWidget {
 
 class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
   final DestinationService _service = DestinationService.instance;
+  final CampService _camps = CampService.instance;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String? _category; // null = semua kategori
@@ -29,11 +31,15 @@ class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
   void initState() {
     super.initState();
     _service.addListener(_onChanged);
+    // Ikut refresh saat jumlah camp berubah (ditambah/dihapus dari halaman
+    // detail destinasi), supaya jumlah "N camp" di sini selalu akurat.
+    _camps.addListener(_onChanged);
   }
 
   @override
   void dispose() {
     _service.removeListener(_onChanged);
+    _camps.removeListener(_onChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -48,7 +54,7 @@ class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
       final inCategory = _category == null || d.category == _category;
       final matches = q.isEmpty ||
           d.name.toLowerCase().contains(q) ||
-          d.location.toLowerCase().contains(q);
+          d.description.toLowerCase().contains(q);
       return inCategory && matches;
     }).toList();
   }
@@ -274,34 +280,30 @@ class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${d.category} · ${d.city}',
+                      d.category,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: kTextMuted, fontSize: 12.5),
                     ),
                     const SizedBox(height: 6),
+                    Text(
+                      d.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: kTextMuted, fontSize: 12),
+                    ),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 16, color: kAccent),
-                        const SizedBox(width: 2),
+                        const Icon(Icons.holiday_village_outlined,
+                            size: 14, color: kPrimary),
+                        const SizedBox(width: 4),
                         Text(
-                          d.rating.toStringAsFixed(1),
+                          '${_camps.byDestination(d.slug).length} camp',
                           style: const TextStyle(
+                            color: kPrimary,
                             fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            d.priceShort,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: kAccentText,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.5,
-                            ),
+                            fontSize: 12,
                           ),
                         ),
                       ],

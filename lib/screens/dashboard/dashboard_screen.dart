@@ -6,7 +6,6 @@ import 'package:campku/services/auth_service.dart';
 import 'package:campku/services/destination_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
-import 'package:campku/widgets/booking_button.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
@@ -59,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return _destinations.all.where((d) {
       return q.isEmpty ||
           d.name.toLowerCase().contains(q) ||
-          d.location.toLowerCase().contains(q) ||
+          d.description.toLowerCase().contains(q) ||
           d.category.toLowerCase().contains(q);
     }).toList();
   }
@@ -827,36 +826,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               .headlineSmall
                               ?.copyWith(fontSize: 24),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.place_outlined,
-                              size: 16,
-                              color: kTextMuted,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                d.location,
-                                style: const TextStyle(color: kTextMuted),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _infoPill(
-                              Icons.star_rounded,
-                              '${d.rating.toStringAsFixed(1)} rating',
-                            ),
-                            _infoPill(d.categoryIcon, d.category),
-                            _infoPill(d.badgeIcon, d.badge),
-                          ],
-                        ),
+                        const SizedBox(height: 10),
+                        _infoPill(d.categoryIcon, d.category),
                         const SizedBox(height: 18),
                         Text(
                           d.description,
@@ -866,33 +837,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: Color(0xFF3A3A3A),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: kBorder),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Harga mulai dari',
-                                style: TextStyle(color: kTextMuted),
-                              ),
-                              Text(
-                                d.priceShort,
-                                style: const TextStyle(
-                                  color: kAccentText,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 20),
                         OutlinedButton.icon(
                           onPressed: () {
@@ -900,7 +844,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _openDetail(d);
                           },
                           icon: const Icon(Icons.info_outline),
-                          label: const Text('Lihat selengkapnya'),
+                          label: const Text('Lihat camp yang tersedia'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                             foregroundColor: kPrimary,
@@ -914,8 +858,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        BookingButton(destination: d),
                       ],
                     ),
                   ),

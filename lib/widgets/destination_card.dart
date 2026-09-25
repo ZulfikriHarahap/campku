@@ -21,7 +21,7 @@ class DestinationCard extends StatelessWidget {
   /// Ketuk badan kartu.
   final VoidCallback onTap;
 
-  /// Ketuk tombol "Lihat selengkapnya".
+  /// Ketuk tombol "Lihat camp".
   final VoidCallback onDetail;
   final VoidCallback onToggleFavorite;
 
@@ -53,7 +53,7 @@ class DestinationCard extends StatelessWidget {
                     right: 48,
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: _badge(d),
+                      child: _categoryBadge(d),
                     ),
                   ),
                   Positioned(
@@ -82,52 +82,15 @@ class DestinationCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.place_outlined,
-                        size: 14,
-                        color: kTextMuted,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          d.city,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: kTextMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          d.priceShort,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: kAccentText,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.star_rounded, size: 16, color: kAccent),
-                      const SizedBox(width: 2),
-                      Text(
-                        d.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    d.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: kTextMuted,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   SizedBox(
@@ -150,7 +113,7 @@ class DestinationCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              'Lihat selengkapnya',
+                              'Lihat camp',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -174,7 +137,7 @@ class DestinationCard extends StatelessWidget {
     );
   }
 
-  Widget _badge(Destination d) {
+  Widget _categoryBadge(Destination d) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -184,11 +147,11 @@ class DestinationCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(d.badgeIcon, size: 12, color: Colors.white),
+          Icon(d.categoryIcon, size: 12, color: Colors.white),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              d.badge,
+              d.category,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
