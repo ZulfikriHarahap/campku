@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
+import 'package:campku/data/tent_data.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/services/destination_service.dart';
 import 'package:campku/services/camp_service.dart';
@@ -9,7 +11,7 @@ import 'package:campku/services/tent_service.dart';
 Camp _sample({
   String id = 'camp_contoh',
   String name = 'Camp Contoh',
-  String destinationSlug = 'sibayak',
+  String destinationSlug = 'bukit_contoh',
 }) {
   return Camp(id: id, name: name, destinationSlug: destinationSlug);
 }
@@ -30,34 +32,47 @@ void main() {
 
   setUp(() {
     AuthService.logout();
+    AuthService.resetUsers();
     destinations.reset();
     camps.reset();
     tents.reset();
+    _loginAsAdmin();
+    destinations.add(const Destination(
+      slug: 'bukit_contoh',
+      name: 'Bukit Contoh',
+      category: 'Gunung',
+      description: 'Destinasi contoh untuk pengujian camp.',
+    ));
+    AuthService.logout();
   });
 
   group('CampService - baca', () {
-    test('data awal sama dengan kCamps', () {
+    test('data awal berisi camp bawaan, destinasi baru belum punya camp', () {
       expect(camps.all.length, kCamps.length);
-      expect(camps.byDestination('sibayak'), isNotEmpty);
-      expect(camps.byDestination('sibayak').every(
-        (c) => c.destinationSlug == 'sibayak',
-      ), isTrue);
+      expect(camps.byDestination('bukit_contoh'), isEmpty);
+    });
+
+    test('byDestination hanya mengembalikan camp destinasi tersebut', () {
+      _loginAsAdmin();
+      camps.add(_sample());
+      camps.add(_sample(id: 'camp_lain', destinationSlug: 'lain'));
+
+      expect(camps.byDestination('bukit_contoh').map((c) => c.id), ['camp_contoh']);
     });
 
     test('nameTaken hanya membandingkan camp di destinasi yang sama', () {
-      final existingName = camps.byDestination('sibayak').first.name;
-      expect(
-        camps.nameTaken(existingName, destinationSlug: 'sibayak'),
-        isTrue,
-      );
-      expect(
-        camps.nameTaken(existingName, destinationSlug: 'toba'),
-        isFalse,
-      );
+      _loginAsAdmin();
+      camps.add(_sample());
+
+      expect(camps.nameTaken('Camp Contoh', destinationSlug: 'bukit_contoh'), isTrue);
+      expect(camps.nameTaken('Camp Contoh', destinationSlug: 'lain'), isFalse);
     });
 
     test('uniqueId menghasilkan id yang belum dipakai', () {
-      final id = camps.uniqueId('Camp Baru Sekali');
+      _loginAsAdmin();
+      camps.add(_sample());
+      final id = camps.uniqueId('Camp Contoh');
+      expect(id, isNot('camp_contoh'));
       expect(camps.findById(id), isNull);
     });
   });
@@ -91,14 +106,21 @@ void main() {
 
     test('hapus camp menghilangkan tipe tendanya', () {
       _loginAsAdmin();
-      final campId = camps.byDestination('sibayak').first.id;
-      expect(tents.byCamp(campId), isNotEmpty);
+      camps.add(_sample());
+      tents.add(const TentType(
+        id: 'tt_contoh',
+        campId: 'camp_contoh',
+        name: 'Tenda Contoh',
+        price: 50000,
+        capacity: 2,
+        stock: 3,
+      ));
 
-      expect(camps.delete(campId), isTrue);
+      expect(camps.delete('camp_contoh'), isTrue);
 
-      expect(camps.findById(campId), isNull);
-      expect(tents.byCamp(campId), isEmpty);
-      expect(camps.delete(campId), isFalse);
+      expect(camps.findById('camp_contoh'), isNull);
+      expect(tents.byCamp('camp_contoh'), isEmpty);
+      expect(camps.delete('camp_contoh'), isFalse);
     });
   });
 
@@ -108,10 +130,8 @@ void main() {
     });
 
     test('pengguna biasa tidak bisa mengubah data', () {
-      final error = AuthService.login(
-        email: 'user@campku.id',
-        password: 'user123',
-        role: UserRole.user,
+      final error = AuthService.register(
+        name: 'Petualang', email: 'biasa@campku.id', password: 'user123',
       );
       expect(error, isNull);
       expect(() => camps.add(_sample()), throwsStateError);

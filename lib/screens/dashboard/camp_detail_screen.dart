@@ -7,14 +7,13 @@ import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/screens/admin/admin_actions.dart';
+import 'package:campku/screens/booking/booking_screen.dart';
 
 enum _TentAction { edit, delete }
 
 /// Halaman detail camp (FR-05): daftar tipe tenda yang bisa dipilih.
-///
-/// Alur booking sesungguhnya (pilih tanggal, total harga, simulasi
-/// pembayaran, tiket — FR-06, FR-07) belum dibuat; tombol "Booking" masih
-/// menampilkan info sementara.
+/// Tombol "Booking Tenda" membuka alur booking lengkap (FR-06, FR-07):
+/// pilih tanggal & malam → simulasi pembayaran → tiket.
 class CampDetailScreen extends StatefulWidget {
   const CampDetailScreen({
     super.key,
@@ -70,25 +69,6 @@ class _CampDetailScreenState extends State<CampDetailScreen> {
   Future<void> _deleteTent(TentType t) async {
     final deleted = await confirmDeleteTent(context, t);
     if (deleted && mounted) _showMessage('${t.name} dihapus');
-  }
-
-  void _bookTent(TentType t) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Booking Tenda'),
-        content: Text(
-          'Pemilihan tanggal, total harga, dan simulasi pembayaran untuk '
-          '"${t.name}" akan tersedia setelah alur booking selesai dibuat.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Oke'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -262,15 +242,29 @@ class _CampDetailScreenState extends State<CampDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: t.stock > 0 ? () => _bookTent(t) : null,
-              icon: const Icon(Icons.event_available),
-              label: const Text('Booking Tenda'),
+          // Admin hanya mengelola tipe tenda (CRUD), bukan memesannya —
+          // tombol "Booking Tenda" hanya tampil untuk peran Pengguna.
+          if (!_isAdmin) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: t.stock > 0
+                    ? () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => BookingScreen(
+                              destination: widget.destination,
+                              camp: widget.camp,
+                              tent: t,
+                            ),
+                          ),
+                        )
+                    : null,
+                icon: const Icon(Icons.event_available),
+                label: const Text('Booking Tenda'),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

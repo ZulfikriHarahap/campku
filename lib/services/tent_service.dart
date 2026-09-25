@@ -103,6 +103,25 @@ class TentService extends ChangeNotifier {
     if (_items.length != before) notifyListeners();
   }
 
+  /// Dipanggil oleh [BookingService] saat booking dibuat (stok berkurang)
+  /// atau ditolak admin (stok dikembalikan). Bukan aksi CRUD admin, jadi
+  /// tidak memerlukan login admin.
+  void adjustStock(String id, int delta) {
+    final i = _items.indexWhere((t) => t.id == id);
+    if (i == -1) return;
+    final t = _items[i];
+    final newStock = t.stock + delta;
+    _items[i] = TentType(
+      id: t.id,
+      campId: t.campId,
+      name: t.name,
+      price: t.price,
+      capacity: t.capacity,
+      stock: newStock < 0 ? 0 : newStock,
+    );
+    notifyListeners();
+  }
+
   /// Mengembalikan data ke kondisi awal ([kTentTypes]). Untuk pengujian.
   @visibleForTesting
   void reset() {

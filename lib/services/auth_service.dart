@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum UserRole { user, admin }
 
 class AppUser {
@@ -40,7 +42,7 @@ class AuthService {
       role: UserRole.admin,
     ),
     const AppUser(
-      name: 'Petualang',
+      name: 'Pengguna Demo',
       email: 'user@campku.id',
       password: 'user123',
       role: UserRole.user,
@@ -117,5 +119,29 @@ class AuthService {
     for (final slugs in _favorites.values) {
       slugs.remove(slug);
     }
+  }
+
+  /// Mengembalikan daftar akun ke kondisi awal (hanya akun admin) dan
+  /// membersihkan sesi & favorit. Untuk pengujian.
+  @visibleForTesting
+  static void resetUsers() {
+    _users
+      ..clear()
+      ..addAll([
+        const AppUser(
+          name: 'Admin CampKu',
+          email: adminEmail,
+          password: adminPassword,
+          role: UserRole.admin,
+        ),
+        const AppUser(
+          name: 'Pengguna Demo',
+          email: 'user@campku.id',
+          password: 'user123',
+          role: UserRole.user,
+        ),
+      ]);
+    _favorites.clear();
+    currentUser = null;
   }
 }

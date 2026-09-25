@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:campku/data/destinations_data.dart';
+import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/services/destination_service.dart';
@@ -8,7 +10,7 @@ import 'package:campku/services/tent_service.dart';
 
 TentType _sample({
   String id = 'tt_contoh',
-  String campId = 'camp_sibayak_raja_berneh',
+  String campId = 'camp_contoh',
   String name = 'Tenda Contoh',
   int price = 50000,
   int capacity = 2,
@@ -40,17 +42,29 @@ void main() {
 
   setUp(() {
     AuthService.logout();
+    AuthService.resetUsers();
     destinations.reset();
     camps.reset();
     tents.reset();
+    _loginAsAdmin();
+    destinations.add(const Destination(
+      slug: 'bukit_contoh',
+      name: 'Bukit Contoh',
+      category: 'Gunung',
+      description: 'Destinasi contoh untuk pengujian tipe tenda.',
+    ));
+    camps.add(const Camp(
+      id: 'camp_contoh',
+      name: 'Camp Contoh',
+      destinationSlug: 'bukit_contoh',
+    ));
+    AuthService.logout();
   });
 
   group('TentService - baca', () {
-    test('data awal sama dengan kTentTypes', () {
+    test('data awal berisi tenda bawaan, camp baru belum punya tenda', () {
       expect(tents.all.length, kTentTypes.length);
-      final list = tents.byCamp('camp_sibayak_raja_berneh');
-      expect(list, isNotEmpty);
-      expect(list.every((t) => t.campId == 'camp_sibayak_raja_berneh'), isTrue);
+      expect(tents.byCamp('camp_contoh'), isEmpty);
     });
 
     test('priceLabel dan capacityLabel terformat dengan benar', () {
@@ -67,15 +81,11 @@ void main() {
     });
 
     test('nameTaken hanya membandingkan tenda di camp yang sama', () {
-      final existing = tents.byCamp('camp_sibayak_raja_berneh').first.name;
-      expect(
-        tents.nameTaken(existing, campId: 'camp_sibayak_raja_berneh'),
-        isTrue,
-      );
-      expect(
-        tents.nameTaken(existing, campId: 'camp_toba_tuktuk'),
-        isFalse,
-      );
+      _loginAsAdmin();
+      tents.add(_sample());
+
+      expect(tents.nameTaken('Tenda Contoh', campId: 'camp_contoh'), isTrue);
+      expect(tents.nameTaken('Tenda Contoh', campId: 'camp_lain'), isFalse);
     });
   });
 
@@ -117,16 +127,30 @@ void main() {
     });
   });
 
+  group('TentService - stok', () {
+    test('adjustStock mengurangi dan menambah stok tanpa turun di bawah 0', () {
+      _loginAsAdmin();
+      tents.add(_sample(stock: 1));
+
+      tents.adjustStock('tt_contoh', -1);
+      expect(tents.findById('tt_contoh')?.stock, 0);
+
+      tents.adjustStock('tt_contoh', -1);
+      expect(tents.findById('tt_contoh')?.stock, 0);
+
+      tents.adjustStock('tt_contoh', 1);
+      expect(tents.findById('tt_contoh')?.stock, 1);
+    });
+  });
+
   group('TentService - hak akses', () {
     test('tanpa login tidak bisa mengubah data', () {
       expect(() => tents.add(_sample()), throwsStateError);
     });
 
     test('pengguna biasa tidak bisa mengubah data', () {
-      final error = AuthService.login(
-        email: 'user@campku.id',
-        password: 'user123',
-        role: UserRole.user,
+      final error = AuthService.register(
+        name: 'Petualang', email: 'biasa@campku.id', password: 'user123',
       );
       expect(error, isNull);
       expect(() => tents.add(_sample()), throwsStateError);
