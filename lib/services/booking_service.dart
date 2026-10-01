@@ -4,10 +4,6 @@ import 'package:campku/data/booking_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/services/auth_service.dart';
-<<<<<<< HEAD
-=======
-import 'package:campku/services/tent_service.dart';
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
 
 /// Penyimpanan booking di memori (FR-06, FR-07, FR-10).
 ///
@@ -16,7 +12,6 @@ import 'package:campku/services/tent_service.dart';
 /// simulasi pembayaran berhasil. Booking baru berstatus
 /// [BookingApproval.menunggu] sampai admin menyetujui atau menolaknya
 /// lewat [approve]/[reject].
-<<<<<<< HEAD
 ///
 /// Stok tipe tenda ([TentType.stock]) adalah jumlah total unit yang
 /// dimiliki camp dan tidak pernah berkurang secara permanen. Yang berubah
@@ -24,8 +19,6 @@ import 'package:campku/services/tent_service.dart';
 /// dihitung lewat [availableStock] dengan membandingkan stok total
 /// terhadap jumlah booking aktif (bukan [BookingApproval.ditolak]) yang
 /// rentang tanggalnya tumpang tindih dengan tanggal yang diminta.
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
 class BookingService extends ChangeNotifier {
   BookingService._();
 
@@ -60,7 +53,6 @@ class BookingService extends ChangeNotifier {
     return id;
   }
 
-<<<<<<< HEAD
   // ── STOK PER TANGGAL ──────────────────────────
 
   bool _isBooked(Booking b) => b.approval != BookingApproval.ditolak;
@@ -102,13 +94,6 @@ class BookingService extends ChangeNotifier {
   /// Membuat booking baru untuk akun yang sedang masuk. Melempar
   /// [StateError] jika belum masuk atau stok tipe tenda ini sudah habis
   /// untuk tanggal yang dipilih.
-=======
-  // ── BUAT BOOKING (user) ──────────────────────
-
-  /// Membuat booking baru untuk akun yang sedang masuk, lalu mengurangi
-  /// stok [tent] sebanyak satu unit. Melempar [StateError] jika belum
-  /// masuk atau stok habis.
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   Booking create({
     required String destinationName,
     required Camp camp,
@@ -120,7 +105,6 @@ class BookingService extends ChangeNotifier {
     if (user == null) {
       throw StateError('Harus masuk untuk melakukan booking.');
     }
-<<<<<<< HEAD
     if (nights < 1) {
       throw ArgumentError('Jumlah malam minimal 1.');
     }
@@ -129,14 +113,6 @@ class BookingService extends ChangeNotifier {
         'Stok tipe tenda ini sudah habis untuk tanggal yang dipilih.',
       );
     }
-=======
-    if (tent.stock <= 0) {
-      throw StateError('Stok tipe tenda ini sudah habis.');
-    }
-    if (nights < 1) {
-      throw ArgumentError('Jumlah malam minimal 1.');
-    }
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
 
     final booking = Booking(
       id: _uniqueId(),
@@ -153,10 +129,6 @@ class BookingService extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
     _items.add(booking);
-<<<<<<< HEAD
-=======
-    TentService.instance.adjustStock(tent.id, -1);
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
     notifyListeners();
     return booking;
   }
@@ -168,7 +140,6 @@ class BookingService extends ChangeNotifier {
     _setApproval(id, BookingApproval.disetujui);
   }
 
-<<<<<<< HEAD
   /// Menolak booking. Karena stok dihitung dinamis per tanggal lewat
   /// [availableStock] (yang mengecualikan booking berstatus ditolak),
   /// menolak booking otomatis membebaskan kembali slot tanggalnya untuk
@@ -177,17 +148,22 @@ class BookingService extends ChangeNotifier {
     _requireAdmin();
     if (findById(id) == null) {
       throw ArgumentError('Booking "$id" tidak ditemukan.');
-=======
-  /// Menolak booking dan mengembalikan satu unit stok tipe tendanya.
-  void reject(String id) {
-    _requireAdmin();
-    final b = findById(id);
-    if (b == null) throw ArgumentError('Booking "$id" tidak ditemukan.');
-    if (b.approval != BookingApproval.ditolak) {
-      TentService.instance.adjustStock(b.tentTypeId, 1);
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
     }
     _setApproval(id, BookingApproval.ditolak);
+  }
+
+  /// Menghapus booking dari riwayat secara permanen (berbeda dari
+  /// [reject], yang hanya mengubah status). Karena stok dihitung dinamis
+  /// dari daftar booking aktif lewat [availableStock], menghapus booking
+  /// otomatis mengembalikan stok tanggalnya seperti semula.
+  /// Mengembalikan `false` jika id tidak ditemukan.
+  bool delete(String id) {
+    _requireAdmin();
+    final before = _items.length;
+    _items.removeWhere((b) => b.id == id);
+    if (_items.length == before) return false;
+    notifyListeners();
+    return true;
   }
 
   void _setApproval(String id, BookingApproval approval) {

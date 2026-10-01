@@ -5,7 +5,6 @@ import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/data/booking_data.dart';
-<<<<<<< HEAD
 import 'package:campku/services/booking_service.dart';
 import 'package:campku/screens/booking/payment_screen.dart';
 
@@ -13,12 +12,6 @@ import 'package:campku/screens/booking/payment_screen.dart';
 /// malam, sistem menghitung total harga secara langsung. Stok yang
 /// ditampilkan mengikuti tanggal & jumlah malam yang dipilih (stok per
 /// tanggal), bukan hanya stok total tipe tenda.
-=======
-import 'package:campku/screens/booking/payment_screen.dart';
-
-/// Langkah 1 alur booking (FR-05): pilih tanggal check-in dan jumlah
-/// malam, sistem menghitung total harga secara langsung.
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
 class BookingScreen extends StatefulWidget {
   const BookingScreen({
     super.key,
@@ -36,11 +29,8 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-<<<<<<< HEAD
   final BookingService _bookings = BookingService.instance;
 
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   late DateTime _checkIn;
   int _nights = 1;
 
@@ -49,7 +39,6 @@ class _BookingScreenState extends State<BookingScreen> {
     super.initState();
     final now = DateTime.now();
     _checkIn = DateTime(now.year, now.month, now.day + 1);
-<<<<<<< HEAD
     // Ikut update kalau ada booking lain yang masuk/ditolak selagi layar
     // ini terbuka, supaya sisa stok untuk tanggal ini tetap akurat.
     _bookings.addListener(_onBookingsChanged);
@@ -63,19 +52,14 @@ class _BookingScreenState extends State<BookingScreen> {
 
   void _onBookingsChanged() {
     if (mounted) setState(() {});
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   }
 
   int get _total => widget.tent.price * _nights;
 
-<<<<<<< HEAD
   /// Sisa stok tipe tenda ini khusus untuk kombinasi [_checkIn] dan
   /// [_nights] yang sedang dipilih (stok per tanggal), bukan stok total.
   int get _available => _bookings.availableStock(widget.tent, _checkIn, _nights);
 
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final firstDate = DateTime(now.year, now.month, now.day + 1);
@@ -150,20 +134,13 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
           const SizedBox(height: 8),
           _nightsStepper(),
-<<<<<<< HEAD
           const SizedBox(height: 16),
           _stockCard(),
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
           const SizedBox(height: 24),
           _totalCard(),
           const SizedBox(height: 24),
           FilledButton.icon(
-<<<<<<< HEAD
             onPressed: _available > 0 ? _continue : null,
-=======
-            onPressed: _continue,
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
             icon: const Icon(Icons.arrow_forward),
             label: const Text('Lanjut ke Pembayaran'),
           ),
@@ -245,7 +222,6 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-<<<<<<< HEAD
   Widget _stockCard() {
     final tersedia = _available;
     final habis = tersedia <= 0;
@@ -285,8 +261,6 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   Widget _totalCard() {
     return Container(
       width: double.infinity,

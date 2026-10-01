@@ -5,9 +5,11 @@ import 'package:campku/data/booking_data.dart';
 import 'package:campku/services/booking_service.dart';
 import 'package:campku/screens/booking/ticket_screen.dart';
 
+enum _BookingAction { delete }
+
 /// Tab "Booking" khusus admin: seluruh data booking dari semua user
-/// (FR-10), dengan filter status dan aksi setuju/tolak untuk yang masih
-/// menunggu persetujuan.
+/// (FR-10), dengan filter status, aksi setuju/tolak untuk yang masih
+/// menunggu persetujuan, dan aksi hapus (permanen) untuk booking apa pun.
 class AdminBookingsScreen extends StatefulWidget {
   const AdminBookingsScreen({super.key});
 
@@ -58,13 +60,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Tolak booking?'),
         content: Text(
-<<<<<<< HEAD
           'Booking ${b.id} (${b.tentName}) akan ditolak dan tanggalnya '
           'akan terbuka kembali untuk dibooking user lain.',
-=======
-          'Booking ${b.id} (${b.tentName}) akan ditolak dan stok tendanya '
-          'dikembalikan.',
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
         ),
         actions: [
           TextButton(
@@ -85,6 +82,36 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
     if (ok != true) return;
     _bookings.reject(b.id);
     _showMessage('Booking ${b.id} ditolak');
+  }
+
+  Future<void> _delete(Booking b) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus booking?'),
+        content: Text(
+          'Booking ${b.id} (${b.tentName}) akan dihapus permanen dari '
+          'riwayat dan stok tanggalnya akan kembali seperti semula.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: kError,
+              minimumSize: const Size(96, 44),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    _bookings.delete(b.id);
+    _showMessage('Booking ${b.id} dihapus, stok sudah kembali seperti semula');
   }
 
   Color _color(BookingApproval a) => switch (a) {
@@ -203,13 +230,16 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => TicketScreen(booking: b)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => TicketScreen(booking: b),
+                    ),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -239,19 +269,44 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(24),
-                    borderRadius: BorderRadius.circular(20),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(24),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      b.approval.label,
+                      style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
+                    ),
                   ),
-                  child: Text(
-                    b.approval.label,
-                    style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
+                  PopupMenuButton<_BookingAction>(
+                    tooltip: 'Aksi untuk booking ${b.id}',
+                    padding: EdgeInsets.zero,
+                    onSelected: (action) {
+                      switch (action) {
+                        case _BookingAction.delete:
+                          _delete(b);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<_BookingAction>(
+                        value: _BookingAction.delete,
+                        child: ListTile(
+                          leading: Icon(Icons.delete_outline, color: kError),
+                          title: Text('Hapus', style: TextStyle(color: kError)),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
           if (b.approval == BookingApproval.menunggu) ...[
             const SizedBox(height: 10),

@@ -94,13 +94,10 @@ class Booking {
   String get checkInLabel => formatDate(checkIn);
   String get nightsLabel => nights == 1 ? '1 malam' : '$nights malam';
 
-<<<<<<< HEAD
   /// Tanggal checkout (eksklusif), dipakai untuk mengecek tumpang-tindih
   /// tanggal antar booking saat menghitung stok yang tersedia per tanggal.
   DateTime get checkOut => checkIn.add(Duration(days: nights));
 
-=======
->>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
   static String formatRupiah(int n) {
     final s = n.toString();
     final b = StringBuffer();
