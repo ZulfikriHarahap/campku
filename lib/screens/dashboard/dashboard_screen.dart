@@ -3,13 +3,17 @@ import 'package:flutter/services.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/destination_service.dart';
+import 'package:campku/services/booking_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
-import 'package:campku/widgets/booking_button.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 import 'package:campku/screens/dashboard/category_screen.dart';
+import 'package:campku/screens/admin/admin_destinations_screen.dart';
+import 'package:campku/screens/admin/admin_bookings_screen.dart';
+import 'package:campku/screens/booking/my_bookings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,27 +23,51 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _tab = 0; // 0 = Beranda, 1 = Favorit, 2 = Profil
+  int _tab = 0; // Admin: Kelola, Booking, Profil. Pengguna: Beranda, Favorit, Tiket, Profil.
   String _query = '';
   final TextEditingController _searchController = TextEditingController();
 
+  final DestinationService _destinations = DestinationService.instance;
+  final BookingService _bookings = BookingService.instance;
+
   AppUser? get _user => AuthService.currentUser;
   Set<String> get _favorites => AuthService.favorites;
+  bool get _isAdmin => _user?.isAdmin ?? false;
+
+  /// Admin hanya mengatur CRUD & persetujuan booking, jadi tidak punya tab
+  /// Beranda (jelajah destinasi) atau Favorit — itu untuk peran Pengguna.
+  /// Admin: Kelola, Booking, Profil. Pengguna: Beranda, Favorit, Tiket, Profil.
+  int get _profileIndex => _isAdmin ? 2 : 3;
+
+  @override
+  void initState() {
+    super.initState();
+    // Muat ulang tampilan saat admin menambah/mengubah/menghapus destinasi.
+    _destinations.addListener(_onDestinationsChanged);
+    // Muat ulang jumlah "Booking menunggu" di profil admin.
+    _bookings.addListener(_onDestinationsChanged);
+  }
 
   @override
   void dispose() {
+    _destinations.removeListener(_onDestinationsChanged);
+    _bookings.removeListener(_onDestinationsChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onDestinationsChanged() {
+    if (mounted) setState(() {});
   }
 
   // ── STATE HELPERS ─────────────────────────
 
   List<Destination> get _filtered {
     final q = _query.trim().toLowerCase();
-    return kDestinations.where((d) {
+    return _destinations.all.where((d) {
       return q.isEmpty ||
           d.name.toLowerCase().contains(q) ||
-          d.location.toLowerCase().contains(q) ||
+          d.description.toLowerCase().contains(q) ||
           d.category.toLowerCase().contains(q);
     }).toList();
   }
@@ -97,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     AuthService.logout();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      (route) => false,
+          (route) => false,
     );
   }
 
@@ -110,7 +138,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Scaffold(
         body: IndexedStack(
           index: _tab,
-          children: [_homeTab(), _favoritesTab(), _profileTab()],
+          children: _isAdmin
+              ? [
+            const AdminDestinationsScreen(),
+            const AdminBookingsScreen(),
+            _profileTab(),
+          ]
+              : [
+            _homeTab(),
+            _favoritesTab(),
+            const MyBookingsScreen(),
+            _profileTab(),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
@@ -118,7 +157,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           indicatorColor: kPrimary.withAlpha(30),
-          destinations: [
+          destinations: _isAdmin
+              ? const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_customize_outlined),
+              selectedIcon:
+              Icon(Icons.dashboard_customize, color: kPrimary),
+              label: 'Kelola',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.fact_check_outlined),
+              selectedIcon: Icon(Icons.fact_check, color: kPrimary),
+              label: 'Booking',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: kPrimary),
+              label: 'Profil',
+            ),
+          ]
+              : [
             const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded, color: kPrimary),
@@ -132,6 +190,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               selectedIcon: const Icon(Icons.favorite, color: kPrimary),
               label: 'Favorit',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.confirmation_number_outlined),
+              selectedIcon:
+              Icon(Icons.confirmation_number, color: kPrimary),
+              label: 'Tiket',
             ),
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -172,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final items = _filtered;
     final query = _query.trim();
     final title =
-        query.isNotEmpty ? 'Hasil untuk "$query"' : 'Semua destinasi';
+    query.isNotEmpty ? 'Hasil untuk "$query"' : 'Semua destinasi';
 
     return CustomScrollView(
       slivers: [
@@ -221,30 +285,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const Spacer(),
-              if (user?.isAdmin ?? false)
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: kAccent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Admin',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
               Semantics(
                 button: true,
                 label: 'Buka profil',
                 child: InkWell(
                   customBorder: const CircleBorder(),
-                  onTap: () => setState(() => _tab = 2),
+                  onTap: () => setState(() => _tab = _profileIndex),
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: CircleAvatar(
@@ -296,10 +342,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         suffixIcon: _query.isEmpty
             ? null
             : IconButton(
-                tooltip: 'Hapus pencarian',
-                icon: const Icon(Icons.close),
-                onPressed: _clearSearch,
-              ),
+          tooltip: 'Hapus pencarian',
+          icon: const Icon(Icons.close),
+          onPressed: _clearSearch,
+        ),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -321,7 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'Pilih kategori',
             style:
-                Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+            Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
           ),
           const SizedBox(height: 12),
           for (var i = 0; i < kCategories.length; i++) ...[
@@ -335,7 +381,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _categoryCard(int index) {
     final c = kCategories[index];
-    final inCategory = kDestinations.where((d) => d.category == c.label);
+    final inCategory = _destinations.byCategory(c.label);
     final count = inCategory.length;
 
     return Semantics(
@@ -361,7 +407,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 SizedBox(
                   width: 112,
                   height: double.infinity,
-                  child: DestinationImage(destination: inCategory.first),
+                  // Kategori bisa kosong jika admin menghapus semua isinya.
+                  child: inCategory.isEmpty
+                      ? LandscapeArt(category: c.label)
+                      : DestinationImage(destination: inCategory.first),
                 ),
                 Expanded(
                   child: Padding(
@@ -450,7 +499,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _favoritesTab() {
     final items =
-        kDestinations.where((d) => _favorites.contains(d.slug)).toList();
+    _destinations.all.where((d) => _favorites.contains(d.slug)).toList();
 
     return CustomScrollView(
       slivers: [
@@ -541,7 +590,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 12),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withAlpha(30),
                   borderRadius: BorderRadius.circular(20),
@@ -575,35 +624,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: _statTile(
-                      Icons.place_outlined,
-                      '${kDestinations.length}',
-                      'Destinasi tersedia',
+                  if (admin)
+                    Expanded(
+                      child: _statTile(
+                        Icons.confirmation_number_outlined,
+                        '${_bookings.pending.length}',
+                        'Booking menunggu',
+                      ),
+                    )
+                  else ...[
+                    Expanded(
+                      child: _statTile(
+                        Icons.place_outlined,
+                        '${_destinations.count}',
+                        'Destinasi tersedia',
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statTile(
-                      Icons.favorite_border,
-                      '${_favorites.length}',
-                      'Favorit saya',
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _statTile(
+                        Icons.favorite_border,
+                        '${_favorites.length}',
+                        'Favorit saya',
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
-              if (admin) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Pengguna terdaftar',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontSize: 18),
-                ),
-                const SizedBox(height: 10),
-                _userList(),
-              ],
               const SizedBox(height: 28),
               OutlinedButton.icon(
                 onPressed: _confirmLogout,
@@ -658,57 +705,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _userList() {
-    final users = AuthService.users;
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: kBorder),
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < users.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: kBorder),
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: kPrimary.withAlpha(30),
-                child: Text(
-                  users[i].initial,
-                  style: const TextStyle(
-                    color: kPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              title: Text(
-                users[i].name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(
-                users[i].email,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: Text(
-                users[i].roleLabel,
-                style: TextStyle(
-                  color: users[i].isAdmin ? kAccentText : kTextMuted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -793,36 +789,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               .headlineSmall
                               ?.copyWith(fontSize: 24),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.place_outlined,
-                              size: 16,
-                              color: kTextMuted,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                d.location,
-                                style: const TextStyle(color: kTextMuted),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _infoPill(
-                              Icons.star_rounded,
-                              '${d.rating.toStringAsFixed(1)} rating',
-                            ),
-                            _infoPill(d.categoryIcon, d.category),
-                            _infoPill(d.badgeIcon, d.badge),
-                          ],
-                        ),
+                        const SizedBox(height: 10),
+                        _infoPill(d.categoryIcon, d.category),
                         const SizedBox(height: 18),
                         Text(
                           d.description,
@@ -832,33 +800,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: Color(0xFF3A3A3A),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: kBorder),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Harga mulai dari',
-                                style: TextStyle(color: kTextMuted),
-                              ),
-                              Text(
-                                d.priceShort,
-                                style: const TextStyle(
-                                  color: kAccentText,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 20),
                         OutlinedButton.icon(
                           onPressed: () {
@@ -866,7 +807,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _openDetail(d);
                           },
                           icon: const Icon(Icons.info_outline),
-                          label: const Text('Lihat selengkapnya'),
+                          label: const Text('Lihat camp yang tersedia'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                             foregroundColor: kPrimary,
@@ -880,8 +821,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        BookingButton(destination: d),
                       ],
                     ),
                   ),
