@@ -42,7 +42,7 @@ class AuthService {
       role: UserRole.admin,
     ),
     const AppUser(
-      name: 'Pengguna Demo',
+      name: 'Pengguna',
       email: 'user@campku.id',
       password: 'user123',
       role: UserRole.user,
@@ -113,6 +113,54 @@ class AuthService {
 
   static void logout() => currentUser = null;
 
+  /// Mengubah nama akun yang sedang masuk. Mengembalikan pesan error,
+  /// atau `null` jika berhasil.
+  static String? updateProfile({required String name}) {
+    final user = currentUser;
+    if (user == null) return 'Harus masuk untuk mengubah profil.';
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'Nama tidak boleh kosong.';
+    if (trimmed.length < 3) return 'Nama minimal 3 karakter.';
+
+    final updated = AppUser(
+      name: trimmed,
+      email: user.email,
+      password: user.password,
+      role: user.role,
+    );
+    final i = _users.indexWhere((u) => u.email == user.email);
+    if (i != -1) _users[i] = updated;
+    currentUser = updated;
+    return null;
+  }
+
+  /// Mengubah kata sandi akun yang sedang masuk. Mengembalikan pesan
+  /// error, atau `null` jika berhasil.
+  static String? changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    final user = currentUser;
+    if (user == null) return 'Harus masuk untuk mengubah kata sandi.';
+    if (user.password != currentPassword) {
+      return 'Kata sandi saat ini salah.';
+    }
+    if (newPassword.length < 6) {
+      return 'Kata sandi baru minimal 6 karakter.';
+    }
+
+    final updated = AppUser(
+      name: user.name,
+      email: user.email,
+      password: newPassword,
+      role: user.role,
+    );
+    final i = _users.indexWhere((u) => u.email == user.email);
+    if (i != -1) _users[i] = updated;
+    currentUser = updated;
+    return null;
+  }
+
   /// Menghapus destinasi dari favorit semua akun. Dipanggil saat admin
   /// menghapus destinasi supaya tidak ada favorit yang menunjuk ke data hilang.
   static void forgetDestination(String slug) {
@@ -135,7 +183,7 @@ class AuthService {
           role: UserRole.admin,
         ),
         const AppUser(
-          name: 'Pengguna Demo',
+          name: 'Pengguna',
           email: 'user@campku.id',
           password: 'user123',
           role: UserRole.user,

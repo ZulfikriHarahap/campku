@@ -5,20 +5,6 @@ import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/services/auth_service.dart';
 
-/// Penyimpanan booking di memori (FR-06, FR-07, FR-10).
-///
-/// Alur: user memilih camp & tipe tenda, memilih tanggal dan jumlah
-/// malam, sistem menghitung total harga, lalu [create] dipanggil setelah
-/// simulasi pembayaran berhasil. Booking baru berstatus
-/// [BookingApproval.menunggu] sampai admin menyetujui atau menolaknya
-/// lewat [approve]/[reject].
-///
-/// Stok tipe tenda ([TentType.stock]) adalah jumlah total unit yang
-/// dimiliki camp dan tidak pernah berkurang secara permanen. Yang berubah
-/// per pemesanan adalah stok yang tersedia untuk *tanggal tertentu*,
-/// dihitung lewat [availableStock] dengan membandingkan stok total
-/// terhadap jumlah booking aktif (bukan [BookingApproval.ditolak]) yang
-/// rentang tanggalnya tumpang tindih dengan tanggal yang diminta.
 class BookingService extends ChangeNotifier {
   BookingService._();
 

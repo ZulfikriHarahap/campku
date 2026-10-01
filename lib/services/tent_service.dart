@@ -3,11 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:campku/data/tent_data.dart';
 import 'package:campku/services/auth_service.dart';
 
-/// Penyimpanan tipe tenda di memori yang bisa diubah oleh admin (FR-09).
-///
-/// Sama seperti [DestinationService] dan [CampService], data hanya
-/// bertahan selama aplikasi berjalan. Setiap tipe tenda terhubung ke satu
-/// camp lewat [TentType.campId].
 class TentService extends ChangeNotifier {
   TentService._();
 
@@ -92,6 +87,18 @@ class TentService extends ChangeNotifier {
     if (_items.length == before) return false;
     notifyListeners();
     return true;
+  }
+
+  /// Menyesuaikan stok tipe tenda (delta bisa positif atau negatif),
+  /// stok tidak boleh turun di bawah 0. Khusus admin.
+  void adjustStock(String id, int delta) {
+    _requireAdmin();
+    final t = findById(id);
+    if (t == null) {
+      throw ArgumentError('Tipe tenda "$id" tidak ditemukan.');
+    }
+    final newStock = t.stock + delta;
+    update(t.copyWith(stock: newStock < 0 ? 0 : newStock));
   }
 
   /// Dipanggil oleh [CampService] saat camp dihapus, supaya tipe tenda

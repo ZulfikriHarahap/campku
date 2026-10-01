@@ -1,9 +1,3 @@
-/// Status persetujuan booking oleh admin.
-///
-/// Bukan bagian dari "Data Utama" mini SRS (yang hanya menyebut status
-/// pembayaran), tapi ditambahkan sesuai permintaan: setiap booking yang
-/// sudah dibayar (simulasi) menunggu persetujuan admin sebelum dianggap
-/// final (FR-10 diperluas menjadi "melihat sekaligus menyetujui/menolak").
 enum BookingApproval { menunggu, disetujui, ditolak }
 
 extension BookingApprovalLabel on BookingApproval {
@@ -14,12 +8,6 @@ extension BookingApprovalLabel on BookingApproval {
       };
 }
 
-/// Data booking (FR-06, FR-07): user, camp, tipe tenda, tanggal, total
-/// harga, dan status pembayaran (simulasi).
-///
-/// Nama destinasi/camp/tenda disalin ("snapshot") saat booking dibuat agar
-/// riwayat booking tetap bisa dibaca walau admin kemudian mengubah atau
-/// menghapus data camp/tenda aslinya.
 class Booking {
   const Booking({
     required this.id,
@@ -55,7 +43,7 @@ class Booking {
   final BookingApproval approval;
 
   /// Simulasi pembayaran: dianggap lunas begitu booking dibuat (FR-06).
-  String get paymentStatusLabel => 'Lunas (simulasi)';
+  String get paymentStatusLabel => 'Lunas';
 
   Booking copyWith({BookingApproval? approval}) => Booking(
         id: id,
@@ -94,8 +82,6 @@ class Booking {
   String get checkInLabel => formatDate(checkIn);
   String get nightsLabel => nights == 1 ? '1 malam' : '$nights malam';
 
-  /// Tanggal checkout (eksklusif), dipakai untuk mengecek tumpang-tindih
-  /// tanggal antar booking saat menghitung stok yang tersedia per tanggal.
   DateTime get checkOut => checkIn.add(Duration(days: nights));
 
   static String formatRupiah(int n) {

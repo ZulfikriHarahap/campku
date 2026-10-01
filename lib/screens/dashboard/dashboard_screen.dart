@@ -14,6 +14,8 @@ import 'package:campku/screens/dashboard/category_screen.dart';
 import 'package:campku/screens/admin/admin_destinations_screen.dart';
 import 'package:campku/screens/admin/admin_bookings_screen.dart';
 import 'package:campku/screens/booking/my_bookings_screen.dart';
+import 'package:campku/screens/profile/edit_profile_screen.dart';
+import 'package:campku/screens/profile/change_password_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -100,6 +102,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     // Status favorit bisa berubah di halaman detail.
     if (mounted) setState(() {});
+  }
+
+  // ── AKSI PROFIL ───────────────────────────
+
+  Future<void> _openEditProfile() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => const EditProfileScreen()),
+    );
+    if (changed == true && mounted) {
+      setState(() {}); // nama/inisial di header & avatar ikut berubah
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Profil berhasil diperbarui')));
+    }
+  }
+
+  Future<void> _openChangePassword() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => const ChangePasswordScreen()),
+    );
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Kata sandi berhasil diubah')));
+    }
   }
 
   Future<void> _confirmLogout() async {
@@ -233,17 +260,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── TAB BERANDA ───────────────────────────
 
   Widget _homeTab() {
-    final items = _filtered;
     final query = _query.trim();
-    final title =
-    query.isNotEmpty ? 'Hasil untuk "$query"' : 'Semua destinasi';
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _homeHeader()),
         SliverToBoxAdapter(child: _categoryCards()),
+        // Pencarian tetap ada, tapi daftar "Semua destinasi" (tanpa kata
+        // kunci) sengaja tidak ditampilkan; jelajah destinasi dilakukan
+        // lewat kartu kategori di atas.
+        if (query.isNotEmpty) _searchResults(query),
+      ],
+    );
+  }
+
+  Widget _searchResults(String query) {
+    final items = _filtered;
+    return SliverMainAxisGroup(
+      slivers: [
         SliverToBoxAdapter(
-          child: _sectionHeader(title, '${items.length} tempat'),
+          child: _sectionHeader('Hasil untuk "$query"', '${items.length} tempat'),
         ),
         if (items.isEmpty)
           SliverToBoxAdapter(
@@ -651,7 +687,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
+              Text(
+                'Akun',
+                style: TextStyle(
+                  color: kTextMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _menuCard([
+                _menuTile(
+                  icon: Icons.person_outline,
+                  title: 'Edit profil',
+                  onTap: _openEditProfile,
+                ),
+                _menuTile(
+                  icon: Icons.lock_outline,
+                  title: 'Ubah kata sandi',
+                  onTap: _openChangePassword,
+                ),
+              ]),
+              // Admin hanya perlu mengelola akunnya sendiri; info umum
+              // seperti Bantuan & Tentang Aplikasi hanya tampil untuk
+              // pengguna, dan ditampilkan statis (bukan menu yang dibuka).
+              if (!admin) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Lainnya',
+                  style: TextStyle(
+                    color: kTextMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _menuCard([
+                  _staticInfoTile(
+                    icon: Icons.help_outline,
+                    title: 'Bantuan',
+                  ),
+                  _staticInfoTile(
+                    icon: Icons.info_outline,
+                    title: 'Tentang aplikasi',
+                  ),
+                ]),
+              ],
+              const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: _confirmLogout,
                 icon: const Icon(Icons.logout),
@@ -669,6 +752,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Kartu putih berisi beberapa [_menuTile], dipisah garis tipis.
+  Widget _menuCard(List<Widget> tiles) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const Divider(height: 1, indent: 56),
+            tiles[i],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _menuTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: kPrimary),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: const Icon(Icons.chevron_right, color: kTextMuted),
+    );
+  }
+
+  /// Baris info statis (tidak bisa diketuk, tanpa panah navigasi) — untuk
+  /// informasi yang cukup dibaca langsung tanpa membuka halaman/dialog lain.
+  Widget _staticInfoTile({
+    required IconData icon,
+    required String title,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: kPrimary),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
   }
 

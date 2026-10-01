@@ -1,11 +1,6 @@
 import 'package:campku/data/destinations_data.dart';
 
-/// Camp yang tersedia di sebuah destinasi (FR-04).
-///
-/// Sesuai mini SRS, data utama camp hanya "nama camp" dan "destinasi
-/// terkait". Info harga dan kapasitas ada di tingkat [TentType], bukan di
-/// sini, karena satu camp bisa punya beberapa tipe tenda dengan harga
-/// berbeda.
+/// Camp yang tersedia di sebuah destinasi
 class Camp {
   const Camp({
     required this.id,

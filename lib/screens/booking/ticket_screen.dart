@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/booking_data.dart';
+import 'package:campku/services/auth_service.dart';
+import 'package:campku/services/booking_service.dart';
 
 /// Tiket/bukti booking (FR-07). Dipakai dua kali: langsung setelah
-/// pembayaran ([justPaid] true, dengan tombol "Selesai"), dan saat dibuka
-/// kembali dari daftar riwayat booking ([justPaid] false, dengan tombol
-/// "Tutup").
-class TicketScreen extends StatelessWidget {
+/// pembayaran ([justPaid] true, dengan tombol "Selesai" yang hanya
+/// menutup layar), dan saat dibuka kembali dari daftar riwayat booking
+/// ([justPaid] false). Saat dibuka admin dari riwayat, tombolnya juga
+/// bertuliskan "Selesai" tapi berfungsi menandai booking ini selesai
+/// dengan menghapusnya dari riwayat (stok tanggalnya otomatis kembali
+/// seperti semula); untuk pengguna biasa tombolnya "Tutup" saja.
+class TicketScreen extends StatefulWidget {
   const TicketScreen({
     super.key,
     required this.booking,
@@ -16,6 +21,19 @@ class TicketScreen extends StatelessWidget {
 
   final Booking booking;
   final bool justPaid;
+
+  @override
+  State<TicketScreen> createState() => _TicketScreenState();
+}
+
+class _TicketScreenState extends State<TicketScreen> {
+  Booking get booking => widget.booking;
+  bool get justPaid => widget.justPaid;
+  bool get _isAdmin => AuthService.currentUser?.isAdmin ?? false;
+
+  /// Tombol ini menghapus booking (bukan hanya menutup layar) hanya saat
+  /// admin membuka riwayat booking yang bukan baru saja dibayar.
+  bool get _finishesBooking => !justPaid && _isAdmin;
 
   Color get _approvalColor => switch (booking.approval) {
         BookingApproval.menunggu => kAccentText,
@@ -28,6 +46,46 @@ class TicketScreen extends StatelessWidget {
         BookingApproval.disetujui => Icons.check_circle,
         BookingApproval.ditolak => Icons.cancel,
       };
+
+  Future<void> _onPrimaryButton() async {
+    if (justPaid) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      return;
+    }
+    if (!_finishesBooking) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Selesaikan booking?'),
+        content: Text(
+          'Booking ${booking.id} (${booking.tentName}) akan ditandai '
+          'selesai dan dihapus dari riwayat. Stok tanggalnya akan '
+          'kembali seperti semula.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: kError,
+              minimumSize: const Size(96, 44),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Selesai'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    BookingService.instance.delete(booking.id);
+    if (mounted) Navigator.pop(context, true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,14 +122,11 @@ class TicketScreen extends StatelessWidget {
           _ticketCard(context),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: () {
-              if (justPaid) {
-                Navigator.of(context).popUntil((r) => r.isFirst);
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(justPaid ? 'Selesai' : 'Tutup'),
+            onPressed: _onPrimaryButton,
+            style: _finishesBooking
+                ? FilledButton.styleFrom(backgroundColor: kError)
+                : null,
+            child: Text(justPaid || _finishesBooking ? 'Selesai' : 'Tutup'),
           ),
         ],
       ),

@@ -8,9 +8,6 @@ import 'package:campku/data/booking_data.dart';
 import 'package:campku/services/booking_service.dart';
 import 'package:campku/screens/booking/ticket_screen.dart';
 
-/// Langkah 2 alur booking (FR-06): ringkasan pesanan dan simulasi
-/// pembayaran. Tidak ada payment gateway asli — menekan "Bayar Sekarang"
-/// langsung menandai booking lunas dan menunggu persetujuan admin.
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({
     super.key,
@@ -80,34 +77,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
           const SizedBox(height: 12),
           _summaryCard(),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: kAccent.withAlpha(24),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, size: 18, color: kAccentText),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Ini simulasi pembayaran untuk keperluan demo, bukan '
-                    'payment gateway sungguhan. Tidak ada uang yang '
-                    'benar-benar berpindah.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      color: kAccentText,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: _processing ? null : _pay,

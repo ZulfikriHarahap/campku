@@ -32,6 +32,24 @@ class TentType {
   String get priceLabel => 'Rp ${_thousands(price)} / malam';
   String get capacityLabel => 'Muat $capacity orang';
 
+  TentType copyWith({
+    String? id,
+    String? campId,
+    String? name,
+    int? price,
+    int? capacity,
+    int? stock,
+  }) {
+    return TentType(
+      id: id ?? this.id,
+      campId: campId ?? this.campId,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      capacity: capacity ?? this.capacity,
+      stock: stock ?? this.stock,
+    );
+  }
+
   static String _thousands(int n) {
     final s = n.toString();
     final b = StringBuffer();

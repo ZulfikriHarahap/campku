@@ -80,7 +80,7 @@ void main() {
       expect(booking.totalPrice, 75000 * 3);
       expect(booking.approval, BookingApproval.menunggu);
       expect(booking.userEmail, 'petualang@campku.id');
-      expect(tents.findById('tt_contoh')?.stock, 1);
+      expect(bookings.availableStock(tents.findById('tt_contoh')!, checkIn, 3), 1);
     });
 
     test('harus masuk (login) untuk booking', () {
@@ -159,12 +159,13 @@ void main() {
 
     test('admin menolak booking mengembalikan stok', () {
       _loginAsAdmin();
-      final stockBefore = tents.findById('tt_contoh')!.stock;
+      final checkIn = DateTime(2027, 1, 10);
+      final stockBefore = bookings.availableStock(tents.findById('tt_contoh')!, checkIn, 1);
 
       bookings.reject(booking.id);
 
       expect(bookings.findById(booking.id)?.approval, BookingApproval.ditolak);
-      expect(tents.findById('tt_contoh')?.stock, stockBefore + 1);
+      expect(bookings.availableStock(tents.findById('tt_contoh')!, checkIn, 1), stockBefore + 1);
     });
 
     test('bukan admin tidak bisa menyetujui/menolak', () {

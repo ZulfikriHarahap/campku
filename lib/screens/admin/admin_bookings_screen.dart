@@ -5,11 +5,11 @@ import 'package:campku/data/booking_data.dart';
 import 'package:campku/services/booking_service.dart';
 import 'package:campku/screens/booking/ticket_screen.dart';
 
-enum _BookingAction { delete }
-
 /// Tab "Booking" khusus admin: seluruh data booking dari semua user
-/// (FR-10), dengan filter status, aksi setuju/tolak untuk yang masih
-/// menunggu persetujuan, dan aksi hapus (permanen) untuk booking apa pun.
+/// (FR-10), dengan filter status dan aksi setuju/tolak untuk yang masih
+/// menunggu persetujuan. Menandai booking selesai (menghapusnya secara
+/// permanen) dilakukan dari dalam tiket (lihat [TicketScreen]), bukan
+/// lewat menu di daftar ini.
 class AdminBookingsScreen extends StatefulWidget {
   const AdminBookingsScreen({super.key});
 
@@ -60,8 +60,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Tolak booking?'),
         content: Text(
-          'Booking ${b.id} (${b.tentName}) akan ditolak dan tanggalnya '
-          'akan terbuka kembali untuk dibooking user lain.',
+          'Booking ${b.id} (${b.tentName}) akan ditolak dan stok tendanya '
+          'akan terbuka kembali untuk dibooking.',
         ),
         actions: [
           TextButton(
@@ -84,34 +84,19 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
     _showMessage('Booking ${b.id} ditolak');
   }
 
-  Future<void> _delete(Booking b) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus booking?'),
-        content: Text(
-          'Booking ${b.id} (${b.tentName}) akan dihapus permanen dari '
-          'riwayat dan stok tanggalnya akan kembali seperti semula.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: kError,
-              minimumSize: const Size(96, 44),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+  /// Buka tiket booking. Kalau admin menandainya selesai di dalam tiket,
+  /// [TicketScreen] mengembalikan `true` lewat Navigator.pop, lalu di sini
+  /// tinggal menampilkan pesannya (daftar sudah ikut ter-update sendiri
+  /// lewat listener [_bookings]).
+  Future<void> _openTicket(Booking b) async {
+    final finished = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => TicketScreen(booking: b)),
     );
-    if (ok != true) return;
-    _bookings.delete(b.id);
-    _showMessage('Booking ${b.id} dihapus, stok sudah kembali seperti semula');
+    if (finished == true && mounted) {
+      _showMessage(
+        'Booking ${b.id} selesai & dihapus, stok sudah kembali seperti semula',
+      );
+    }
   }
 
   Color _color(BookingApproval a) => switch (a) {
@@ -230,16 +215,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => TicketScreen(booking: b),
-                    ),
-                  ),
+          InkWell(
+            onTap: () => _openTicket(b),
+            child: Row(
+              children: [
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -269,44 +249,19 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                     ],
                   ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(24),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      b.approval.label,
-                      style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(24),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  PopupMenuButton<_BookingAction>(
-                    tooltip: 'Aksi untuk booking ${b.id}',
-                    padding: EdgeInsets.zero,
-                    onSelected: (action) {
-                      switch (action) {
-                        case _BookingAction.delete:
-                          _delete(b);
-                      }
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem<_BookingAction>(
-                        value: _BookingAction.delete,
-                        child: ListTile(
-                          leading: Icon(Icons.delete_outline, color: kError),
-                          title: Text('Hapus', style: TextStyle(color: kError)),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    b.approval.label,
+                    style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11.5),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
           if (b.approval == BookingApproval.menunggu) ...[
             const SizedBox(height: 10),

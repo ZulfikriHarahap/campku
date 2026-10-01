@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
 
-/// Menampilkan foto `assets/images/<slug>.jpg`.
-/// Jika file foto belum ada, otomatis tampil ilustrasi lanskap sesuai kategori.
 class DestinationImage extends StatelessWidget {
   const DestinationImage({super.key, required this.destination});
 
