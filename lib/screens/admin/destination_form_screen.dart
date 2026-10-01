@@ -171,6 +171,11 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
                 textCapitalization: TextCapitalization.sentences,
                 validator: _validateDescription,
               ),
+<<<<<<< HEAD
+=======
+              const SizedBox(height: 18),
+              _photoNote(),
+>>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _save,
@@ -183,4 +188,47 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
       ),
     );
   }
+<<<<<<< HEAD
+=======
+
+  /// Catatan cara memasang foto. Nama file mengikuti slug destinasi.
+  Widget _photoNote() {
+    return ListenableBuilder(
+      listenable: _name,
+      builder: (context, _) {
+        final slug = widget.existing?.slug ??
+            (_name.text.trim().isEmpty
+                ? 'nama_destinasi'
+                : _service.uniqueSlug(_name.text));
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: kAccent.withAlpha(24),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.image_outlined, size: 18, color: kAccentText),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Foto (opsional): simpan file di assets/images/$slug.jpg '
+                  'lalu jalankan ulang aplikasi. Tanpa foto, ilustrasi '
+                  'lanskap sesuai kategori akan ditampilkan.',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: kAccentText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+>>>>>>> a33c0e6f8b61ae6c5c0a7c228bd01a770e0a0787
 }
