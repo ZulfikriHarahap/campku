@@ -121,6 +121,7 @@ class _CampFormScreenState extends State<CampFormScreen> {
                 decoration: fieldDecoration(
                   label: 'Nama camp',
                   icon: Icons.holiday_village_outlined,
+                  helper: 'Contoh: Camp Tepi Danau',
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: _validateName,

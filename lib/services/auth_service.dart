@@ -77,10 +77,14 @@ class AuthService {
           : 'Email belum terdaftar. Daftar dulu untuk membuat akun.';
     }
     final user = matches.first;
+    // Hanya satu akun admin yang sah: akun statis [adminEmail].
+    if (role == UserRole.admin && user.email != adminEmail) {
+      return 'Email admin tidak dikenali. Gunakan akun admin yang tersedia.';
+    }
     if (user.role != role) {
       return user.isAdmin
-          ? 'Ini akun admin. Pilih "Admin" di atas lalu coba masuk lagi.'
-          : 'Ini akun pengguna. Pilih "Pengguna" di atas lalu coba masuk lagi.';
+          ? 'Ini akun admin. Gunakan halaman "Masuk sebagai Admin".'
+          : 'Ini akun pengguna. Gunakan halaman masuk pengguna.';
     }
     if (user.password != password) {
       return 'Kata sandi salah. Periksa lagi lalu coba masuk.';
@@ -97,6 +101,9 @@ class AuthService {
     required String email,
     required String password,
   }) {
+    if (_normalize(email) == adminEmail) {
+      return 'Email ini khusus admin dan tidak bisa didaftarkan.';
+    }
     if (_users.any((u) => u.email == _normalize(email))) {
       return 'Email sudah dipakai. Masuk atau gunakan email lain.';
     }

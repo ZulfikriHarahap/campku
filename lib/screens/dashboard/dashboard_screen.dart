@@ -8,6 +8,7 @@ import 'package:campku/services/booking_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
 import 'package:campku/data/destinations_data.dart';
+import 'package:campku/screens/auth/admin_login_screen.dart';
 import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 import 'package:campku/screens/dashboard/category_screen.dart';
@@ -65,12 +66,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ── STATE HELPERS ─────────────────────────
 
   List<Destination> get _filtered {
-    final q = _query.trim().toLowerCase();
+    // Setiap kata kunci harus cocok di nama, kategori, atau deskripsi,
+    // jadi urutan kata tidak berpengaruh ("sibayak gunung" = "gunung sibayak").
+    final words = _query
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     return _destinations.all.where((d) {
-      return q.isEmpty ||
-          d.name.toLowerCase().contains(q) ||
-          d.description.toLowerCase().contains(q) ||
-          d.category.toLowerCase().contains(q);
+      final text =
+          '${d.name} ${d.category} ${d.description}'.toLowerCase();
+      return words.every(text.contains);
     }).toList();
   }
 
@@ -149,9 +156,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    final wasAdmin = AuthService.currentUser?.isAdmin ?? false;
     AuthService.logout();
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            wasAdmin ? const AdminLoginScreen() : const LoginScreen(),
+      ),
           (route) => false,
     );
   }
@@ -263,13 +274,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final query = _query.trim();
 
     return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverToBoxAdapter(child: _homeHeader()),
-        SliverToBoxAdapter(child: _categoryCards()),
-        // Pencarian tetap ada, tapi daftar "Semua destinasi" (tanpa kata
-        // kunci) sengaja tidak ditampilkan; jelajah destinasi dilakukan
-        // lewat kartu kategori di atas.
-        if (query.isNotEmpty) _searchResults(query),
+        // Saat mencari, hasil langsung tampil di bawah kolom pencarian
+        // (kartu kategori disembunyikan supaya hasil tidak terdorong keluar
+        // layar). Tanpa kata kunci, jelajah destinasi lewat kartu kategori.
+        if (query.isEmpty)
+          SliverToBoxAdapter(child: _categoryCards())
+        else
+          _searchResults(query),
       ],
     );
   }

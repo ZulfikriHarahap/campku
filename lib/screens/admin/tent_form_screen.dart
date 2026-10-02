@@ -141,6 +141,7 @@ class _TentFormScreenState extends State<TentFormScreen> {
                 decoration: fieldDecoration(
                   label: 'Nama tipe tenda',
                   icon: Icons.cabin_outlined,
+                  helper: 'Contoh: Tenda Dome 2 Orang',
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: _validateName,

@@ -60,8 +60,8 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Tolak booking?'),
         content: Text(
-          'Booking ${b.id} (${b.tentName}) akan ditolak dan stok tendanya '
-          'akan terbuka kembali untuk dibooking.',
+          'Booking ${b.id} (${b.tentName}) akan ditolak dan tanggalnya '
+          'akan terbuka kembali untuk dibooking user lain.',
         ),
         actions: [
           TextButton(
