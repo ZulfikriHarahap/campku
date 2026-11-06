@@ -38,6 +38,16 @@ class Destination {
   final String category;
   final String description;
 
+  factory Destination.fromMap(String id, Map<String, dynamic> m) => Destination(
+        slug: id,
+        name: m['name'] as String,
+        category: m['category'] as String,
+        description: m['description'] as String,
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'name': name, 'category': category, 'description': description};
+
   String get imageAsset => 'assets/images/$slug.jpg';
 
   IconData get categoryIcon =>

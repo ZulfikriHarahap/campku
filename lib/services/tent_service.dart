@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:campku/data/tent_data.dart';
@@ -9,6 +12,28 @@ class TentService extends ChangeNotifier {
   static final TentService instance = TentService._();
 
   final List<TentType> _items = List<TentType>.of(kTentTypes);
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
+
+  /// Mulai mendengarkan Firestore (koleksi `tent_types`). Dipanggil sekali dari
+  /// `main()` setelah Firebase diinisialisasi. Tidak dipanggil di tes, jadi
+  /// tes tetap memakai data contoh lokal.
+  void start() {
+    if (_sub != null) return;
+    _sub = FirebaseFirestore.instance
+        .collection('tent_types')
+        .orderBy('order')
+        .snapshots()
+        .listen(
+      (snap) {
+        _items
+          ..clear()
+          ..addAll(snap.docs.map((d) => TentType.fromMap(d.id, d.data())));
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('TentService: $e'),
+    );
+  }
 
   // ── READ ──────────────────────────────────
 

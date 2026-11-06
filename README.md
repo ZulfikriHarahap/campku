@@ -1,6 +1,6 @@
 # CampKu
 
-Aplikasi Flutter untuk menjelajahi destinasi camping, memesan tenda, dan mengelola booking. Proyek demo tanpa backend — semua data (akun, destinasi, booking) disimpan di memori dan kembali ke data contoh setiap aplikasi ditutup.
+Aplikasi Flutter untuk menjelajahi destinasi camping, memesan tenda, dan mengelola booking.
 
 ## Fitur utama
 

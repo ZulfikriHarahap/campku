@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:campku/data/destinations_data.dart';
@@ -17,6 +20,28 @@ class DestinationService extends ChangeNotifier {
   static final DestinationService instance = DestinationService._();
 
   final List<Destination> _items = List<Destination>.of(kDestinations);
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
+
+  /// Mulai mendengarkan Firestore (koleksi `destinations`). Dipanggil sekali dari
+  /// `main()` setelah Firebase diinisialisasi. Tidak dipanggil di tes, jadi
+  /// tes tetap memakai data contoh lokal.
+  void start() {
+    if (_sub != null) return;
+    _sub = FirebaseFirestore.instance
+        .collection('destinations')
+        .orderBy('order')
+        .snapshots()
+        .listen(
+      (snap) {
+        _items
+          ..clear()
+          ..addAll(snap.docs.map((d) => Destination.fromMap(d.id, d.data())));
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('DestinationService: $e'),
+    );
+  }
 
   // ── READ ──────────────────────────────────
 

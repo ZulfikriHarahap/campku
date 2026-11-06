@@ -29,6 +29,23 @@ class TentType {
   /// Jumlah tenda yang tersedia untuk dibooking.
   final int stock;
 
+  factory TentType.fromMap(String id, Map<String, dynamic> m) => TentType(
+        id: id,
+        campId: m['campId'] as String,
+        name: m['name'] as String,
+        price: (m['price'] as num).toInt(),
+        capacity: (m['capacity'] as num).toInt(),
+        stock: (m['stock'] as num).toInt(),
+      );
+
+  Map<String, dynamic> toMap() => {
+        'campId': campId,
+        'name': name,
+        'price': price,
+        'capacity': capacity,
+        'stock': stock,
+      };
+
   String get priceLabel => 'Rp ${_thousands(price)} / malam';
   String get capacityLabel => 'Muat $capacity orang';
 

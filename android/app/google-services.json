@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "329473981398",
+    "project_id": "campku-5b1d4",
+    "storage_bucket": "campku-5b1d4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:329473981398:android:889d48132d9330f8ad8277",
+        "android_client_info": {
+          "package_name": "com.example.campku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6ni-LdtNW9WBSEJjjGht1iUXotSaZnWo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -19,6 +19,15 @@ class Camp {
 
   /// Slug [Destination] tempat camp ini berada.
   final String destinationSlug;
+
+  factory Camp.fromMap(String id, Map<String, dynamic> m) => Camp(
+        id: id,
+        name: m['name'] as String,
+        destinationSlug: m['destinationSlug'] as String,
+      );
+
+  Map<String, dynamic> toMap() =>
+      {'name': name, 'destinationSlug': destinationSlug};
 }
 
 /// Data contoh: setiap destinasi punya 1-2 camp.

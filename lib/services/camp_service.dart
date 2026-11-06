@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:campku/data/camp_data.dart';
@@ -15,6 +18,28 @@ class CampService extends ChangeNotifier {
   static final CampService instance = CampService._();
 
   final List<Camp> _items = List<Camp>.of(kCamps);
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
+
+  /// Mulai mendengarkan Firestore (koleksi `camps`). Dipanggil sekali dari
+  /// `main()` setelah Firebase diinisialisasi. Tidak dipanggil di tes, jadi
+  /// tes tetap memakai data contoh lokal.
+  void start() {
+    if (_sub != null) return;
+    _sub = FirebaseFirestore.instance
+        .collection('camps')
+        .orderBy('order')
+        .snapshots()
+        .listen(
+      (snap) {
+        _items
+          ..clear()
+          ..addAll(snap.docs.map((d) => Camp.fromMap(d.id, d.data())));
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('CampService: $e'),
+    );
+  }
 
   // ── READ ──────────────────────────────────
 
