@@ -56,11 +56,11 @@ class _LandscapePainter extends CustomPainter {
     final rect = Offset.zero & size;
 
     final List<Color> sky = switch (category) {
-      'Gunung' => const [Color(0xFF7FB2AA), Color(0xFFF7DDB0)],
-      'Danau' => const [Color(0xFF8EC0DA), Color(0xFFE9F3EE)],
-      'Air Terjun' => const [Color(0xFFA5CFC6), Color(0xFFE3F1EA)],
-      'Hutan' => const [Color(0xFFBBD8B0), Color(0xFFF2F4D6)],
-      _ => const [Color(0xFFF5D9A6), Color(0xFFDFEDE2)],
+      'Gunung' => const [Color(0xFF7FB6DC), Color(0xFFE4F2FB)],
+      'Danau' => const [Color(0xFF8EC0DA), Color(0xFFEAF5FC)],
+      'Air Terjun' => const [Color(0xFFA5D4EE), Color(0xFFE6F3FB)],
+      'Hutan' => const [Color(0xFFB8DCF0), Color(0xFFEEF7FC)],
+      _ => const [Color(0xFFD6ECFA), Color(0xFFDDEEF9)],
     };
     canvas.drawRect(
       rect,
@@ -79,11 +79,11 @@ class _LandscapePainter extends CustomPainter {
 
     switch (category) {
       case 'Gunung':
-        _ridge(canvas, size, rnd, 0.55, 0.30, const Color(0xFF8FB8A8), true);
-        _ridge(canvas, size, rnd, 0.70, 0.28, const Color(0xFF3F7A66), true);
+        _ridge(canvas, size, rnd, 0.55, 0.30, const Color(0xFF8CC0E0), true);
+        _ridge(canvas, size, rnd, 0.70, 0.28, const Color(0xFF2E6FA0), true);
         _ridge(canvas, size, rnd, 0.90, 0.16, kPrimary, false);
       case 'Danau':
-        _ridge(canvas, size, rnd, 0.52, 0.22, const Color(0xFF8FB8A8), false);
+        _ridge(canvas, size, rnd, 0.52, 0.22, const Color(0xFF8CC0E0), false);
         canvas.drawRect(
           Rect.fromLTWH(0, h * 0.54, w, h * 0.46),
           Paint()..color = const Color(0xFF4F94AD),
@@ -101,9 +101,9 @@ class _LandscapePainter extends CustomPainter {
       case 'Air Terjun':
         canvas.drawRect(
           Rect.fromLTWH(0, h * 0.34, w, h * 0.66),
-          Paint()..color = const Color(0xFF2A5B4B),
+          Paint()..color = const Color(0xFF24557E),
         );
-        _ridge(canvas, size, rnd, 0.38, 0.08, const Color(0xFF2A5B4B), false);
+        _ridge(canvas, size, rnd, 0.38, 0.08, const Color(0xFF24557E), false);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(w * 0.44, h * 0.34, w * 0.12, h * 0.46),
@@ -112,7 +112,7 @@ class _LandscapePainter extends CustomPainter {
           Paint()..color = Colors.white.withAlpha(235),
         );
         final streak = Paint()
-          ..color = const Color(0xFFBFE3E0)
+          ..color = const Color(0xFFBFE3F5)
           ..strokeWidth = 2;
         for (var i = 1; i < 4; i++) {
           final x = w * (0.44 + 0.03 * i);
@@ -124,7 +124,7 @@ class _LandscapePainter extends CustomPainter {
             width: w * 0.55,
             height: h * 0.12,
           ),
-          Paint()..color = const Color(0xFF7BC0C4),
+          Paint()..color = const Color(0xFF7CC4E8),
         );
         canvas.drawCircle(
           Offset(w * 0.5, h * 0.8),
@@ -133,13 +133,13 @@ class _LandscapePainter extends CustomPainter {
         );
         _trees(canvas, size, rnd, 1.0, 6, 0.30, kPrimary);
       case 'Hutan':
-        _ridge(canvas, size, rnd, 0.52, 0.22, const Color(0xFFA6C9A0), false);
-        _ridge(canvas, size, rnd, 0.66, 0.18, const Color(0xFF5E9A7E), false);
+        _ridge(canvas, size, rnd, 0.52, 0.22, const Color(0xFFA6CBEA), false);
+        _ridge(canvas, size, rnd, 0.66, 0.18, const Color(0xFF4F86BA), false);
         _trees(canvas, size, rnd, 0.80, 9, 0.24, kPrimaryLight);
         _trees(canvas, size, rnd, 1.0, 6, 0.42, kPrimary);
       default:
-        _ridge(canvas, size, rnd, 0.56, 0.24, const Color(0xFF8FB8A8), false);
-        _ridge(canvas, size, rnd, 0.66, 0.16, const Color(0xFF3F7A66), false);
+        _ridge(canvas, size, rnd, 0.56, 0.24, const Color(0xFF8CC0E0), false);
+        _ridge(canvas, size, rnd, 0.66, 0.16, const Color(0xFF2E6FA0), false);
         _trees(canvas, size, rnd, 0.72, 5, 0.16, kPrimary);
         final river = Path()
           ..moveTo(w * 0.48, h * 0.62)

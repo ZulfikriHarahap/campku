@@ -8,6 +8,10 @@ class Category {
 
   /// Kalimat singkat yang tampil di kartu kategori pada beranda.
   final String tagline;
+
+  /// Foto representatif kategori, dipakai di header & kartu kategori beranda.
+  String get imageAsset =>
+      'assets/images/category_${label.toLowerCase().replaceAll(' ', '_')}.jpg';
 }
 
 const List<Category> kCategories = [

@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:campku/theme/app_theme.dart';
-import 'package:campku/widgets/destination_image.dart';
 
-/// Kerangka halaman login & register: ilustrasi gunung di atas, form di bawah.
+/// Kerangka halaman login & register: header langit biru di atas, form di bawah.
 class AuthLayout extends StatelessWidget {
   const AuthLayout({
     super.key,
@@ -35,20 +34,7 @@ class AuthLayout extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    const LandscapeArt(category: 'Gunung', seed: 11),
-                    // Gradasi gelap tipis agar logo putih tetap terbaca.
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.center,
-                          colors: [
-                            Colors.black.withAlpha(90),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
+                    const _SkyBackdrop(),
                     Positioned(
                       left: showBack ? 8 : 24,
                       top: top + 10,
@@ -135,6 +121,42 @@ class AuthLayout extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Latar langit biru bergradien dengan dua lingkaran lembut sebagai aksen.
+class _SkyBackdrop extends StatelessWidget {
+  const _SkyBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [kPrimary, kPrimaryLight, Color(0xFF8CCBEE)],
+            ),
+          ),
+        ),
+        Positioned(right: -36, top: -40, child: _glow(150, 0x33FFFFFF)),
+        Positioned(left: -50, bottom: 10, child: _glow(170, 0x1FFFFFFF)),
+      ],
+    );
+  }
+
+  static Widget _glow(double size, int argb) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(argb),
       ),
     );
   }

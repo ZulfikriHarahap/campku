@@ -3,20 +3,21 @@ import 'package:flutter/material.dart';
 // ─────────────────────────────────────────────
 // WARNA
 // ─────────────────────────────────────────────
-const Color kPrimary = Color(0xFF1B4D3E); // Hijau tua
-const Color kPrimaryLight = Color(0xFF2D6B57);
+const Color kPrimary = Color(0xFF1C6EA4); // Biru langit tua
+const Color kPrimaryLight = Color(0xFF3B93CE); // Biru langit
 const Color kAccent = Color(0xFFD97706); // Amber (ikon, badge)
 const Color kAccentText = Color(0xFFB45309); // Amber lebih gelap untuk teks kecil
-const Color kBackground = Color(0xFFF8F9FA);
+const Color kBackground = Color(0xFFF5F9FC);
 const Color kCardBg = Colors.white;
 const Color kTextDark = Color(0xFF1A1A1A);
 const Color kTextMuted = Color(0xFF6B6B6B);
-const Color kBorder = Color(0xFFE0E4E2);
+const Color kBorder = Color(0xFFD6E4F0);
 const Color kError = Color(0xFFB3261E);
 
 ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
+    fontFamily: 'Poppins',
     colorScheme: ColorScheme.fromSeed(
       seedColor: kPrimary,
       primary: kPrimary,
