@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,7 +7,6 @@ import 'package:campku/services/destination_service.dart';
 import 'package:campku/services/booking_service.dart';
 import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
-import 'package:campku/widgets/category_card.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/screens/auth/admin_login_screen.dart';
 import 'package:campku/screens/auth/login_screen.dart';
@@ -36,11 +33,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final DestinationService _destinations = DestinationService.instance;
   final BookingService _bookings = BookingService.instance;
 
-  // Header beranda: foto latar yang bergeser otomatis.
-  final PageController _bannerController = PageController();
-  Timer? _bannerTimer;
-  int _bannerPage = 0;
-
   AppUser? get _user => AuthService.currentUser;
   Set<String> get _favorites => AuthService.favorites;
   bool get _isAdmin => _user?.isAdmin ?? false;
@@ -57,21 +49,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _destinations.addListener(_onDestinationsChanged);
     // Muat ulang jumlah "Booking menunggu" di profil admin.
     _bookings.addListener(_onDestinationsChanged);
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!mounted || !_bannerController.hasClients) return;
-      final next = (_bannerPage + 1) % kCategories.length;
-      _bannerController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOut,
-      );
-    });
   }
 
   @override
   void dispose() {
-    _bannerTimer?.cancel();
-    _bannerController.dispose();
     _destinations.removeListener(_onDestinationsChanged);
     _bookings.removeListener(_onDestinationsChanged);
     _searchController.dispose();
@@ -332,176 +313,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _homeHeader() {
     final user = _user;
-    final top = MediaQuery.paddingOf(context).top;
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-      child: SizedBox(
-        height: top + 270,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Foto latar yang bergeser sendiri tiap beberapa detik.
-            PageView.builder(
-              controller: _bannerController,
-              itemCount: kCategories.length,
-              onPageChanged: (i) => setState(() => _bannerPage = i),
-              itemBuilder: (_, i) => Image.asset(
-                kCategories[i].imageAsset,
-                fit: BoxFit.cover,
-                excludeFromSemantics: true,
-                errorBuilder: (_, __, ___) => Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [kPrimary, kPrimaryLight],
+    return _headerShell(
+      bottom: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.terrain, color: kAccent, size: 24),
+              const SizedBox(width: 8),
+              const Text.rich(
+                TextSpan(
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  children: [
+                    TextSpan(
+                      text: 'Camp',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    TextSpan(text: 'Ku', style: TextStyle(color: kAccent)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Semantics(
+                button: true,
+                label: 'Buka profil',
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => setState(() => _tab = _profileIndex),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white.withAlpha(40),
+                      child: Text(
+                        user?.initial ?? 'P',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Halo, ${user?.firstName ?? 'Petualang'}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
             ),
-            // Lapisan gelap supaya teks & logo tetap terbaca di atas foto.
-            const IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x99000000), Color(0x33000000), Color(0xB3000000)],
-                    stops: [0, 0.45, 1],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20, top + 12, 20, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.terrain, color: kAccent, size: 24),
-                      const SizedBox(width: 8),
-                      const Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: 'Camp',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            TextSpan(
-                                text: 'Ku', style: TextStyle(color: kAccent)),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      Semantics(
-                        button: true,
-                        label: 'Buka profil',
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => setState(() => _tab = _profileIndex),
-                          child: Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: Colors.white.withAlpha(60),
-                              child: Text(
-                                user?.initial ?? 'P',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Eksplor aktivitas di',
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(230),
-                      fontSize: 14,
-                      shadows: const [Shadow(blurRadius: 6, color: Colors.black54)],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Sekitarmu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _searchField(),
-                  const SizedBox(height: 12),
-                  Center(child: _bannerDots()),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Mau camping di mana akhir pekan ini?',
+            style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 14),
+          ),
+          const SizedBox(height: 18),
+          _searchField(),
+        ],
       ),
     );
   }
 
-  /// Titik penanda foto latar yang sedang tampil.
-  Widget _bannerDots() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < kCategories.length; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            width: i == _bannerPage ? 18 : 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: i == _bannerPage ? Colors.white : Colors.white54,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _searchField() {
-    return Material(
-      elevation: 4,
-      shadowColor: Colors.black45,
-      borderRadius: BorderRadius.circular(30),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (v) => setState(() => _query = v),
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Cari gunung, danau, atau lokasi',
-          hintStyle: const TextStyle(color: kTextMuted, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: kPrimary),
-          suffixIcon: _query.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: 'Hapus pencarian',
-                  icon: const Icon(Icons.close),
-                  onPressed: _clearSearch,
-                ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide.none,
-          ),
+    return TextField(
+      controller: _searchController,
+      onChanged: (v) => setState(() => _query = v),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Cari gunung, danau, atau lokasi',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+          tooltip: 'Hapus pencarian',
+          icon: const Icon(Icons.close),
+          onPressed: _clearSearch,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
       ),
     );
@@ -531,11 +431,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _categoryCard(int index) {
     final c = kCategories[index];
-    final count = _destinations.byCategory(c.label).length;
-    return CategoryCard(
-      category: c,
-      count: count,
-      onTap: () => _openCategory(c),
+    final inCategory = _destinations.byCategory(c.label);
+    final count = inCategory.length;
+
+    return Semantics(
+      button: true,
+      label: 'Buka kategori ${c.label}, $count destinasi',
+      child: Card(
+        elevation: 1.5,
+        color: kCardBg,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black26,
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: kBorder),
+        ),
+        child: InkWell(
+          onTap: () => _openCategory(c),
+          child: SizedBox(
+            height: 96,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 112,
+                  height: double.infinity,
+                  // Kategori bisa kosong jika admin menghapus semua isinya.
+                  child: inCategory.isEmpty
+                      ? LandscapeArt(category: c.label)
+                      : DestinationImage(destination: inCategory.first),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 8, 0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(c.icon, size: 18, color: kPrimary),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                c.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: kTextDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          c.tagline,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: kTextMuted,
+                            fontSize: 12.5,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$count destinasi',
+                          style: const TextStyle(
+                            color: kAccentText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: const Icon(Icons.chevron_right, color: kTextMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
