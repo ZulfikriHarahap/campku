@@ -28,12 +28,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
     FocusScope.of(context).unfocus();
 
-    final error = AuthService.changePassword(
+    final error = await AuthService.changePassword(
       currentPassword: _current.text,
       newPassword: _newPassword.text,
     );

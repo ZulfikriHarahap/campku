@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'test_session.dart';
+
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
@@ -27,20 +29,12 @@ const _tent = TentType(
 );
 
 void _loginAsAdmin() {
-  final error = AuthService.login(
-    email: AuthService.adminEmail,
-    password: AuthService.adminPassword,
-    role: UserRole.admin,
-  );
-  expect(error, isNull);
+  AuthService.setSessionForTest(testAdmin);
 }
 
 void _loginAsNewUser({String email = 'petualang@campku.id'}) {
-  AuthService.logout();
-  final error = AuthService.register(
-    name: 'Petualang', email: email, password: 'user123',
-  );
-  expect(error, isNull);
+  AuthService.setSessionForTest(null);
+  AuthService.setSessionForTest(testUser);
 }
 
 void main() {
@@ -50,8 +44,7 @@ void main() {
   final bookings = BookingService.instance;
 
   setUp(() {
-    AuthService.logout();
-    AuthService.resetUsers();
+    AuthService.setSessionForTest(null);
     destinations.reset();
     camps.reset();
     tents.reset();
@@ -61,7 +54,7 @@ void main() {
     destinations.add(_destination);
     camps.add(_camp);
     tents.add(_tent);
-    AuthService.logout();
+    AuthService.setSessionForTest(null);
   });
 
   group('BookingService - buat booking (FR-06)', () {
@@ -148,7 +141,7 @@ void main() {
         checkIn: DateTime(2027, 1, 10),
         nights: 1,
       );
-      AuthService.logout();
+      AuthService.setSessionForTest(null);
     });
 
     test('admin dapat menyetujui booking', () {

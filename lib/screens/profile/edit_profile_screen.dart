@@ -29,12 +29,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
     FocusScope.of(context).unfocus();
 
-    final error = AuthService.updateProfile(name: _name.text);
+    final error = await AuthService.updateProfile(name: _name.text);
     if (!mounted) return;
     if (error != null) {
       ScaffoldMessenger.of(context)

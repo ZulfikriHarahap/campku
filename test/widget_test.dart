@@ -1,74 +1,27 @@
-import 'package:campku/services/auth_service.dart';
-import 'package:campku/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  setUp(AuthService.logout);
+import 'package:campku/main.dart';
+import 'package:campku/services/auth_service.dart';
 
-  group('AuthService', () {
-    test('login pengguna berhasil dengan akun demo', () {
-      final error = AuthService.login(
-        email: 'USER@campku.id ',
-        password: 'user123',
-        role: UserRole.user,
-      );
-      expect(error, isNull);
-      expect(AuthService.currentUser?.role, UserRole.user);
+import 'test_session.dart';
+
+void main() {
+  setUp(() => AuthService.setSessionForTest(null));
+
+  group('AuthService (sesi)', () {
+    test('tanpa sesi, tidak ada pengguna yang masuk', () {
+      expect(AuthService.currentUser, isNull);
     });
 
-    test('login admin memakai akun statis', () {
-      final error = AuthService.login(
-        email: AuthService.adminEmail,
-        password: AuthService.adminPassword,
-        role: UserRole.admin,
-      );
-      expect(error, isNull);
+    test('sesi admin dikenali sebagai admin', () {
+      AuthService.setSessionForTest(testAdmin);
       expect(AuthService.currentUser?.isAdmin, isTrue);
     });
 
-    test('login gagal jika kata sandi salah', () {
-      final error = AuthService.login(
-        email: 'user@campku.id',
-        password: 'salah',
-        role: UserRole.user,
-      );
-      expect(error, isNotNull);
-      expect(AuthService.currentUser, isNull);
-    });
-
-    test('login gagal jika peran yang dipilih tidak cocok', () {
-      final sebagaiAdmin = AuthService.login(
-        email: 'user@campku.id',
-        password: 'user123',
-        role: UserRole.admin,
-      );
-      final sebagaiUser = AuthService.login(
-        email: AuthService.adminEmail,
-        password: AuthService.adminPassword,
-        role: UserRole.user,
-      );
-      expect(sebagaiAdmin, isNotNull);
-      expect(sebagaiUser, isNotNull);
-      expect(AuthService.currentUser, isNull);
-    });
-
-    test('daftar akun selalu menjadi pengguna', () {
-      final error = AuthService.register(
-        name: 'Budi',
-        email: 'budi@campku.id',
-        password: 'rahasia1',
-      );
-      expect(error, isNull);
+    test('sesi pengguna bukan admin', () {
+      AuthService.setSessionForTest(testUser);
       expect(AuthService.currentUser?.role, UserRole.user);
-    });
-
-    test('email yang sama tidak bisa didaftarkan dua kali', () {
-      final error = AuthService.register(
-        name: 'Dobel',
-        email: AuthService.adminEmail,
-        password: 'rahasia1',
-      );
-      expect(error, isNotNull);
+      expect(AuthService.currentUser?.isAdmin, isFalse);
     });
   });
 

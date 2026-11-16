@@ -35,6 +35,12 @@ class TentService extends ChangeNotifier {
     );
   }
 
+  /// Berhenti mendengarkan Firestore (dipanggil saat keluar dari akun).
+  void stop() {
+    _sub?.cancel();
+    _sub = null;
+  }
+
   // ── READ ──────────────────────────────────
 
   List<TentType> get all => List<TentType>.unmodifiable(_items);

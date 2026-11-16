@@ -38,8 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _loading = true;
       _error = null;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    final error = AuthService.register(
+    final error = await AuthService.register(
       name: _name.text,
       email: _email.text,
       password: _password.text,

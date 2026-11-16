@@ -35,8 +35,7 @@ class _LoginFormState extends State<LoginForm> {
       _loading = true;
       _error = null;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    final error = AuthService.login(
+    final error = await AuthService.login(
       email: _email.text,
       password: _password.text,
       role: widget.role,

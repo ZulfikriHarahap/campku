@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'test_session.dart';
+
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
@@ -22,12 +24,7 @@ Destination _sample({
 }
 
 void _loginAsAdmin() {
-  final error = AuthService.login(
-    email: AuthService.adminEmail,
-    password: AuthService.adminPassword,
-    role: UserRole.admin,
-  );
-  expect(error, isNull);
+  AuthService.setSessionForTest(testAdmin);
 }
 
 void main() {
@@ -36,8 +33,7 @@ void main() {
   final tents = TentService.instance;
 
   setUp(() {
-    AuthService.logout();
-    AuthService.resetUsers();
+    AuthService.setSessionForTest(null);
     destinations.reset();
     camps.reset();
     tents.reset();
@@ -161,9 +157,7 @@ void main() {
     });
 
     test('pengguna biasa tidak bisa mengubah data', () {
-      AuthService.register(
-        name: 'Petualang', email: 'biasa@campku.id', password: 'user123',
-      );
+      AuthService.setSessionForTest(testUser);
       expect(() => destinations.add(_sample()), throwsStateError);
       expect(destinations.count, kDestinations.length);
     });

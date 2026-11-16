@@ -41,6 +41,12 @@ class CampService extends ChangeNotifier {
     );
   }
 
+  /// Berhenti mendengarkan Firestore (dipanggil saat keluar dari akun).
+  void stop() {
+    _sub?.cancel();
+    _sub = null;
+  }
+
   // ── READ ──────────────────────────────────
 
   List<Camp> get all => List<Camp>.unmodifiable(_items);

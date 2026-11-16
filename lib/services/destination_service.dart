@@ -43,6 +43,12 @@ class DestinationService extends ChangeNotifier {
     );
   }
 
+  /// Berhenti mendengarkan Firestore (dipanggil saat keluar dari akun).
+  void stop() {
+    _sub?.cancel();
+    _sub = null;
+  }
+
   // ── READ ──────────────────────────────────
 
   List<Destination> get all => List<Destination>.unmodifiable(_items);
