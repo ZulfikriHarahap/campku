@@ -11,6 +11,8 @@ class TentService extends ChangeNotifier {
 
   static final TentService instance = TentService._();
 
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+
   final List<TentType> _items = List<TentType>.of(kTentTypes);
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
@@ -90,32 +92,59 @@ class TentService extends ChangeNotifier {
 
   // ── CREATE / UPDATE / DELETE (khusus admin) ─
 
+  /// Menyimpan tipe tenda baru ke Firestore lalu memperbarui cache lokal.
+  Future<TentType> create(TentType t) async {
+    _requireAdmin();
+    if (findById(t.id) != null) {
+      throw ArgumentError('Id "${t.id}" sudah dipakai.');
+    }
+    await _db.collection('tent_types').doc(t.id).set({
+      ...t.toMap(),
+      'order': _items.length,
+    });
+    return _insert(t);
+  }
+
+  /// Menyimpan perubahan tipe tenda ke Firestore lalu memperbarui cache lokal.
+  Future<void> edit(TentType t) async {
+    _requireAdmin();
+    _requireIndex(t.id);
+    await _db.collection('tent_types').doc(t.id).set(
+          t.toMap(),
+          SetOptions(merge: true),
+        );
+    final i = _items.indexWhere((e) => e.id == t.id);
+    if (i != -1) _replace(i, t);
+  }
+
+  /// Menghapus tipe tenda dari Firestore.
+  /// Mengembalikan `false` jika id tidak ditemukan.
+  Future<bool> remove(String id) async {
+    _requireAdmin();
+    _requireIndex(id);
+    await _db.collection('tent_types').doc(id).delete();
+    return delete(id);
+  }
+
   TentType add(TentType t) {
     _requireAdmin();
     if (findById(t.id) != null) {
       throw ArgumentError('Id "${t.id}" sudah dipakai.');
     }
-    _items.add(t);
-    notifyListeners();
-    return t;
+    return _insert(t);
   }
 
   void update(TentType t) {
     _requireAdmin();
-    final i = _items.indexWhere((e) => e.id == t.id);
-    if (i == -1) {
-      throw ArgumentError('Tipe tenda "${t.id}" tidak ditemukan.');
-    }
-    _items[i] = t;
-    notifyListeners();
+    _replace(_requireIndex(t.id), t);
   }
 
   /// Mengembalikan `false` jika id tidak ditemukan.
   bool delete(String id) {
     _requireAdmin();
-    final before = _items.length;
-    _items.removeWhere((t) => t.id == id);
-    if (_items.length == before) return false;
+    final i = _items.indexWhere((t) => t.id == id);
+    if (i == -1) return false;
+    _items.removeAt(i);
     notifyListeners();
     return true;
   }
@@ -146,6 +175,23 @@ class TentService extends ChangeNotifier {
   void reset() {
     _items.clear();
     _items.addAll(kTentTypes);
+    notifyListeners();
+  }
+
+  int _requireIndex(String id) {
+    final i = _items.indexWhere((e) => e.id == id);
+    if (i == -1) throw ArgumentError('Tipe tenda "$id" tidak ditemukan.');
+    return i;
+  }
+
+  TentType _insert(TentType t) {
+    _items.add(t);
+    notifyListeners();
+    return t;
+  }
+
+  void _replace(int i, TentType t) {
+    _items[i] = t;
     notifyListeners();
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
+import 'package:campku/services/admin_write_error.dart';
 import 'package:campku/services/tent_service.dart';
 
 /// Form untuk menambah atau mengedit tipe tenda di dalam satu [camp].
@@ -28,6 +29,7 @@ class _TentFormScreenState extends State<TentFormScreen> {
   late final TextEditingController _price;
   late final TextEditingController _capacity;
   late final TextEditingController _stock;
+  bool _saving = false;
 
   bool get _editing => widget.existing != null;
 
@@ -70,7 +72,7 @@ class _TentFormScreenState extends State<TentFormScreen> {
     return null;
   }
 
-  void _save() {
+  Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
     FocusScope.of(context).unfocus();
@@ -85,12 +87,22 @@ class _TentFormScreenState extends State<TentFormScreen> {
       stock: int.parse(_stock.text.trim()),
     );
 
-    if (_editing) {
-      _service.update(tent);
-    } else {
-      _service.add(tent);
+    setState(() => _saving = true);
+    try {
+      if (_editing) {
+        await _service.edit(tent);
+      } else {
+        await _service.create(tent);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, tent);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(adminWriteErrorMessage(e))));
     }
-    Navigator.pop(context, tent);
   }
 
   @override
@@ -201,10 +213,22 @@ class _TentFormScreenState extends State<TentFormScreen> {
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _save,
-                icon: Icon(_editing ? Icons.save_outlined : Icons.add),
-                label:
-                    Text(_editing ? 'Simpan perubahan' : 'Tambah tipe tenda'),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(_editing ? Icons.save_outlined : Icons.add),
+                label: Text(_saving
+                    ? 'Menyimpan...'
+                    : _editing
+                        ? 'Simpan perubahan'
+                        : 'Tambah tipe tenda'),
               ),
             ],
           ),

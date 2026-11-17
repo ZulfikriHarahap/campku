@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/destinations_data.dart';
+import 'package:campku/services/admin_write_error.dart';
 import 'package:campku/services/camp_service.dart';
 
 /// Form untuk menambah atau mengedit camp di dalam satu [destination].
@@ -24,6 +25,7 @@ class _CampFormScreenState extends State<CampFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final CampService _service = CampService.instance;
   late final TextEditingController _name;
+  bool _saving = false;
 
   bool get _editing => widget.existing != null;
 
@@ -53,7 +55,7 @@ class _CampFormScreenState extends State<CampFormScreen> {
     return null;
   }
 
-  void _save() {
+  Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
     FocusScope.of(context).unfocus();
@@ -65,12 +67,22 @@ class _CampFormScreenState extends State<CampFormScreen> {
       destinationSlug: widget.destination.slug,
     );
 
-    if (_editing) {
-      _service.update(camp);
-    } else {
-      _service.add(camp);
+    setState(() => _saving = true);
+    try {
+      if (_editing) {
+        await _service.edit(camp);
+      } else {
+        await _service.create(camp);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, camp);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(adminWriteErrorMessage(e))));
     }
-    Navigator.pop(context, camp);
   }
 
   @override
@@ -128,9 +140,22 @@ class _CampFormScreenState extends State<CampFormScreen> {
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _save,
-                icon: Icon(_editing ? Icons.save_outlined : Icons.add),
-                label: Text(_editing ? 'Simpan perubahan' : 'Tambah camp'),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(_editing ? Icons.save_outlined : Icons.add),
+                label: Text(_saving
+                    ? 'Menyimpan...'
+                    : _editing
+                        ? 'Simpan perubahan'
+                        : 'Tambah camp'),
               ),
             ],
           ),

@@ -29,8 +29,9 @@ Akun pengguna baru juga bisa dibuat lewat halaman **Daftar**. Akun admin bersifa
 
 ## Teknologi
 
-- Flutter / Dart, state management sederhana dengan `ChangeNotifier` (tanpa package tambahan).
-- Belum terhubung ke backend/database sungguhan — cocok untuk demo & prototipe.
+- Flutter / Dart, Firebase Authentication dan Cloud Firestore.
+- State management sederhana dengan `ChangeNotifier` (tanpa package tambahan).
+- CRUD admin (destinasi, camp, tipe tenda) tersimpan di Firestore dan diamankan oleh `firestore.rules`.
 
 ## Menjalankan
 
@@ -39,12 +40,18 @@ flutter pub get
 flutter run
 ```
 
+Aturan keamanan Firestore perlu dipasang sekali setelah login Firebase CLI:
+
+```bash
+firebase deploy --only firestore:rules --project campku-5b1d4
+```
+
 ## Struktur folder singkat
 
 ```
 lib/
 ├── data/        # Model data (Destination, Camp, TentType, Booking, AppUser)
-├── services/    # Logika bisnis & penyimpanan di memori (ChangeNotifier)
+├── services/    # Logika bisnis, Firestore, dan cache lokal (ChangeNotifier)
 ├── screens/     # Tampilan per fitur (auth, dashboard, booking, admin, profile)
 ├── widgets/     # Komponen UI yang dipakai berulang
 └── theme/       # Warna, tema, dan dekorasi input bersama

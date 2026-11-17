@@ -4,6 +4,7 @@ import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
 import 'package:campku/data/camp_data.dart';
 import 'package:campku/data/tent_data.dart';
+import 'package:campku/services/admin_write_error.dart';
 import 'package:campku/services/destination_service.dart';
 import 'package:campku/services/camp_service.dart';
 import 'package:campku/services/tent_service.dart';
@@ -40,7 +41,12 @@ Future<bool> confirmDeleteDestination(
         'dan dari semua favorit. Tindakan ini tidak bisa dibatalkan.',
   );
   if (!ok) return false;
-  return DestinationService.instance.delete(d.slug);
+  try {
+    return await DestinationService.instance.remove(d.slug);
+  } catch (e) {
+    if (context.mounted) _showError(context, e);
+    return false;
+  }
 }
 
 // ── CAMP ────────────────────────────────────
@@ -70,7 +76,12 @@ Future<bool> confirmDeleteCamp(BuildContext context, Camp c) async {
         'Tindakan ini tidak bisa dibatalkan.',
   );
   if (!ok) return false;
-  return CampService.instance.delete(c.id);
+  try {
+    return await CampService.instance.remove(c.id);
+  } catch (e) {
+    if (context.mounted) _showError(context, e);
+    return false;
+  }
 }
 
 // ── TIPE TENDA ──────────────────────────────
@@ -97,10 +108,22 @@ Future<bool> confirmDeleteTent(BuildContext context, TentType t) async {
     message: '${t.name} akan dihapus. Tindakan ini tidak bisa dibatalkan.',
   );
   if (!ok) return false;
-  return TentService.instance.delete(t.id);
+  try {
+    return await TentService.instance.remove(t.id);
+  } catch (e) {
+    if (context.mounted) _showError(context, e);
+    return false;
+  }
 }
 
 // ── DIALOG BERSAMA ──────────────────────────
+
+void _showError(BuildContext context, Object error) {
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(adminWriteErrorMessage(error))));
+}
 
 Future<bool> _confirm(
   BuildContext context, {

@@ -34,7 +34,12 @@ void _loginAsAdmin() {
 
 void _loginAsNewUser({String email = 'petualang@campku.id'}) {
   AuthService.setSessionForTest(null);
-  AuthService.setSessionForTest(testUser);
+  AuthService.setSessionForTest(AppUser(
+    uid: testUser.uid,
+    name: testUser.name,
+    email: email,
+    role: testUser.role,
+  ));
 }
 
 void main() {

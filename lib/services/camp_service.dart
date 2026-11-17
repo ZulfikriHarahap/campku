@@ -7,15 +7,18 @@ import 'package:campku/data/camp_data.dart';
 import 'package:campku/services/auth_service.dart';
 import 'package:campku/services/tent_service.dart';
 
-/// Penyimpanan camp di memori yang bisa diubah oleh admin (FR-08).
+/// Penyimpanan camp yang bisa diubah oleh admin (FR-08).
 ///
-/// Sama seperti [DestinationService], data hanya bertahan selama aplikasi
-/// berjalan. Setiap camp terhubung ke satu destinasi lewat
-/// [Camp.destinationSlug].
+/// Data dibaca dari koleksi Firestore `camps` lewat [start]. Metode [create],
+/// [edit], dan [remove] menulis ke Firestore; [add], [update], dan [delete]
+/// hanya memperbarui cache lokal (dipakai tes). Setiap camp terhubung ke satu
+/// destinasi lewat [Camp.destinationSlug].
 class CampService extends ChangeNotifier {
   CampService._();
 
   static final CampService instance = CampService._();
+
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
 
   final List<Camp> _items = List<Camp>.of(kCamps);
 
@@ -100,33 +103,65 @@ class CampService extends ChangeNotifier {
 
   // ── CREATE / UPDATE / DELETE (khusus admin) ─
 
+  /// Menyimpan camp baru ke Firestore lalu memperbarui cache lokal.
+  Future<Camp> create(Camp c) async {
+    _requireAdmin();
+    if (findById(c.id) != null) {
+      throw ArgumentError('Id "${c.id}" sudah dipakai.');
+    }
+    await _db.collection('camps').doc(c.id).set({
+      ...c.toMap(),
+      'order': _items.length,
+    });
+    return _insert(c);
+  }
+
+  /// Menyimpan perubahan camp ke Firestore lalu memperbarui cache lokal.
+  Future<void> edit(Camp c) async {
+    _requireAdmin();
+    _requireIndex(c.id);
+    await _db.collection('camps').doc(c.id).set(
+          c.toMap(),
+          SetOptions(merge: true),
+        );
+    final i = _items.indexWhere((e) => e.id == c.id);
+    if (i != -1) _replace(i, c);
+  }
+
+  /// Menghapus camp beserta tipe tendanya dari Firestore.
+  /// Mengembalikan `false` jika id tidak ditemukan.
+  Future<bool> remove(String id) async {
+    _requireAdmin();
+    _requireIndex(id);
+    final batch = _db.batch();
+    batch.delete(_db.collection('camps').doc(id));
+    for (final tent in TentService.instance.byCamp(id)) {
+      batch.delete(_db.collection('tent_types').doc(tent.id));
+    }
+    await batch.commit();
+    return delete(id);
+  }
+
   Camp add(Camp c) {
     _requireAdmin();
     if (findById(c.id) != null) {
       throw ArgumentError('Id "${c.id}" sudah dipakai.');
     }
-    _items.add(c);
-    notifyListeners();
-    return c;
+    return _insert(c);
   }
 
   void update(Camp c) {
     _requireAdmin();
-    final i = _items.indexWhere((e) => e.id == c.id);
-    if (i == -1) {
-      throw ArgumentError('Camp "${c.id}" tidak ditemukan.');
-    }
-    _items[i] = c;
-    notifyListeners();
+    _replace(_requireIndex(c.id), c);
   }
 
   /// Menghapus camp beserta seluruh tipe tenda yang terhubung.
   /// Mengembalikan `false` jika id tidak ditemukan.
   bool delete(String id) {
     _requireAdmin();
-    final before = _items.length;
-    _items.removeWhere((c) => c.id == id);
-    if (_items.length == before) return false;
+    final i = _items.indexWhere((c) => c.id == id);
+    if (i == -1) return false;
+    _items.removeAt(i);
     TentService.instance.deleteByCamp(id);
     notifyListeners();
     return true;
@@ -154,6 +189,23 @@ class CampService extends ChangeNotifier {
   void reset() {
     _items.clear();
     _items.addAll(kCamps);
+    notifyListeners();
+  }
+
+  int _requireIndex(String id) {
+    final i = _items.indexWhere((e) => e.id == id);
+    if (i == -1) throw ArgumentError('Camp "$id" tidak ditemukan.');
+    return i;
+  }
+
+  Camp _insert(Camp c) {
+    _items.add(c);
+    notifyListeners();
+    return c;
+  }
+
+  void _replace(int i, Camp c) {
+    _items[i] = c;
     notifyListeners();
   }
 

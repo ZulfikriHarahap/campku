@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
+import 'package:campku/services/admin_write_error.dart';
 import 'package:campku/services/destination_service.dart';
 
 /// Form untuk menambah destinasi baru, atau mengedit jika [existing] diisi.
@@ -26,6 +27,7 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
   late final TextEditingController _name;
   late final TextEditingController _description;
   late String _category;
+  bool _saving = false;
 
   bool get _editing => widget.existing != null;
 
@@ -62,7 +64,7 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
     return null;
   }
 
-  void _save() {
+  Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
       ScaffoldMessenger.of(context)
@@ -78,20 +80,28 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
 
     final name = _name.text.trim();
     final destination = Destination(
-      // Slug tidak berubah saat edit supaya favorit, foto, dan relasi camp
-      // tetap valid.
       slug: widget.existing?.slug ?? _service.uniqueSlug(name),
       name: name,
       category: _category,
       description: _description.text.trim(),
     );
 
-    if (_editing) {
-      _service.update(destination);
-    } else {
-      _service.add(destination);
+    setState(() => _saving = true);
+    try {
+      if (_editing) {
+        await _service.edit(destination);
+      } else {
+        await _service.create(destination);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, destination);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(adminWriteErrorMessage(e))));
     }
-    Navigator.pop(context, destination);
   }
 
   @override
@@ -173,9 +183,22 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _save,
-                icon: Icon(_editing ? Icons.save_outlined : Icons.add),
-                label: Text(_editing ? 'Simpan perubahan' : 'Tambah destinasi'),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(_editing ? Icons.save_outlined : Icons.add),
+                label: Text(_saving
+                    ? 'Menyimpan...'
+                    : _editing
+                        ? 'Simpan perubahan'
+                        : 'Tambah destinasi'),
               ),
             ],
           ),
