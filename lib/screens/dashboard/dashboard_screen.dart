@@ -11,12 +11,11 @@ import 'package:campku/widgets/destination_image.dart';
 import 'package:campku/widgets/destination_card.dart';
 import 'package:campku/widgets/category_card.dart';
 import 'package:campku/data/destinations_data.dart';
-import 'package:campku/screens/auth/admin_login_screen.dart';
-import 'package:campku/screens/auth/login_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 import 'package:campku/screens/dashboard/category_screen.dart';
 import 'package:campku/screens/admin/admin_destinations_screen.dart';
 import 'package:campku/screens/admin/admin_bookings_screen.dart';
+import 'package:campku/screens/admin/admin_logout.dart';
 import 'package:campku/screens/booking/my_bookings_screen.dart';
 import 'package:campku/screens/profile/edit_profile_screen.dart';
 import 'package:campku/screens/profile/change_password_screen.dart';
@@ -29,7 +28,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _tab = 0; // Admin: Kelola, Booking, Profil. Pengguna: Beranda, Favorit, Tiket, Profil.
+  int _tab = 0; // Admin: Kelola, Booking. Pengguna: Beranda, Favorit, Tiket, Profil.
   String _query = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -46,9 +45,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool get _isAdmin => _user?.isAdmin ?? false;
 
   /// Admin hanya mengatur CRUD & persetujuan booking, jadi tidak punya tab
-  /// Beranda (jelajah destinasi) atau Favorit — itu untuk peran Pengguna.
-  /// Admin: Kelola, Booking, Profil. Pengguna: Beranda, Favorit, Tiket, Profil.
-  int get _profileIndex => _isAdmin ? 2 : 3;
+  /// Beranda, Favorit, maupun Profil — keluar lewat tombol di kanan atas.
+  /// Admin: Kelola, Booking. Pengguna: Beranda, Favorit, Tiket, Profil.
+  int get _profileIndex => 3;
 
   @override
   void initState() {
@@ -155,37 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _confirmLogout() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Keluar dari akun?'),
-        content: const Text('Kamu bisa masuk kembali kapan saja.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    final wasAdmin = AuthService.currentUser?.isAdmin ?? false;
-    await AuthService.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            wasAdmin ? const AdminLoginScreen() : const LoginScreen(),
-      ),
-          (route) => false,
-    );
-  }
+  Future<void> _confirmLogout() => confirmLogout(context);
 
   // ── BUILD ─────────────────────────────────
 
@@ -200,7 +169,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ? [
             const AdminDestinationsScreen(),
             const AdminBookingsScreen(),
-            _profileTab(),
           ]
               : [
             _homeTab(),
@@ -227,11 +195,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icon(Icons.fact_check_outlined),
               selectedIcon: Icon(Icons.fact_check, color: kPrimary),
               label: 'Booking',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: kPrimary),
-              label: 'Profil',
             ),
           ]
               : [

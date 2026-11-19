@@ -7,6 +7,7 @@ import 'package:campku/services/camp_service.dart';
 import 'package:campku/widgets/admin_destination_tile.dart';
 import 'package:campku/widgets/category_card.dart';
 import 'package:campku/screens/admin/admin_actions.dart';
+import 'package:campku/screens/admin/admin_logout.dart';
 import 'package:campku/screens/admin/admin_category_screen.dart';
 import 'package:campku/screens/dashboard/destination_detail_screen.dart';
 
@@ -108,7 +109,7 @@ class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
-        backgroundColor: kAccent,
+        backgroundColor: kPrimary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Tambah'),
@@ -145,19 +146,36 @@ class _AdminDestinationsScreenState extends State<AdminDestinationsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Kelola destinasi',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_service.count} destinasi · tambah, ubah, atau hapus',
-            style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Kelola destinasi',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_service.count} destinasi · tambah, ubah, atau hapus',
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(220),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const AdminLogoutButton(),
+            ],
           ),
           const SizedBox(height: 18),
           TextField(

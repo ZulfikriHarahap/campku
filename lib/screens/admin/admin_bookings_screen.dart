@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/booking_data.dart';
 import 'package:campku/services/booking_service.dart';
+import 'package:campku/screens/admin/admin_logout.dart';
 import 'package:campku/screens/booking/ticket_screen.dart';
 
 /// Tab "Booking" khusus admin: seluruh data booking dari semua user
@@ -148,19 +149,36 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Data booking',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_bookings.all.length} booking · $pending menunggu persetujuan',
-            style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Data booking',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_bookings.all.length} booking · $pending menunggu persetujuan',
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(220),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const AdminLogoutButton(),
+            ],
           ),
         ],
       ),

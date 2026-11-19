@@ -113,7 +113,10 @@ class CampService extends ChangeNotifier {
       ...c.toMap(),
       'order': _items.length,
     });
-    return _insert(c);
+    // Listener Firestore (snapshots) sering sudah memasukkan dokumen ini ke
+    // cache lokal begitu `set()` dipanggil. Tambahkan hanya jika belum ada,
+    // supaya data tidak tampil dobel.
+    return findById(c.id) ?? _insert(c);
   }
 
   /// Menyimpan perubahan camp ke Firestore lalu memperbarui cache lokal.

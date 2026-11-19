@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 
 import 'package:campku/theme/app_theme.dart';
 
-/// Kerangka halaman login & register: header langit biru di atas, form di bawah.
+/// Kerangka halaman login & register: latar putih polos, logo di atas,
+/// lalu judul dan form di bawahnya.
 class AuthLayout extends StatelessWidget {
   const AuthLayout({
     super.key,
@@ -23,140 +24,75 @@ class AuthLayout extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
+        backgroundColor: Colors.white,
         body: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Column(
-            children: [
-              SizedBox(
-                height: 210 + top,
-                child: Stack(
-                  fit: StackFit.expand,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(24, top + 16, 24, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SkyBackdrop(),
-                    Positioned(
-                      left: showBack ? 8 : 24,
-                      top: top + 10,
-                      child: Row(
-                        children: [
-                          if (showBack)
-                            IconButton(
-                              tooltip: 'Kembali',
-                              onPressed: () => Navigator.maybePop(context),
-                              icon: const Icon(Icons.arrow_back),
-                              color: Colors.white,
-                            ),
-                          const Icon(Icons.terrain, color: kAccent, size: 26),
-                          const SizedBox(width: 8),
-                          const Text.rich(
-                            TextSpan(
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: 'Camp',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                TextSpan(
-                                  text: 'Ku',
-                                  style: TextStyle(color: kAccent),
-                                ),
-                              ],
-                            ),
+                    Row(
+                      children: [
+                        if (showBack)
+                          IconButton(
+                            tooltip: 'Kembali',
+                            onPressed: () => Navigator.maybePop(context),
+                            icon: const Icon(Icons.arrow_back),
+                            color: kTextDark,
                           ),
-                        ],
-                      ),
-                    ),
-                    // Lengkung putih yang menyambung ke area form.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: kBackground,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(28)),
+                        const Icon(Icons.terrain, color: kAccent, size: 26),
+                        const SizedBox(width: 8),
+                        const Text.rich(
+                          TextSpan(
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'Camp',
+                                style: TextStyle(color: kPrimary),
+                              ),
+                              TextSpan(
+                                text: 'Ku',
+                                style: TextStyle(color: kAccent),
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 36),
+                    Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontSize: 26),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: kTextMuted,
+                        fontSize: 14.5,
+                        height: 1.4,
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    child,
                   ],
                 ),
               ),
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontSize: 26),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            color: kTextMuted,
-                            fontSize: 14.5,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        child,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Latar langit biru bergradien dengan dua lingkaran lembut sebagai aksen.
-class _SkyBackdrop extends StatelessWidget {
-  const _SkyBackdrop();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [kPrimary, kPrimaryLight, Color(0xFF8CCBEE)],
             ),
           ),
         ),
-        Positioned(right: -36, top: -40, child: _glow(150, 0x33FFFFFF)),
-        Positioned(left: -50, bottom: 10, child: _glow(170, 0x1FFFFFFF)),
-      ],
-    );
-  }
-
-  static Widget _glow(double size, int argb) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(argb),
       ),
     );
   }

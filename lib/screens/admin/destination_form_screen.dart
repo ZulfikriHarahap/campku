@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
@@ -29,6 +33,12 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
   late String _category;
   bool _saving = false;
 
+  /// Foto yang akan disimpan: foto lama saat edit, atau foto baru dari galeri.
+  Uint8List? _photo;
+
+  /// Diaktifkan saat admin menekan simpan tanpa foto.
+  bool _photoMissing = false;
+
   bool get _editing => widget.existing != null;
 
   @override
@@ -38,6 +48,7 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
     _name = TextEditingController(text: e?.name);
     _description = TextEditingController(text: e?.description);
     _category = e?.category ?? kCategories.first.label;
+    _photo = e?.imageBytes;
   }
 
   @override
@@ -57,6 +68,42 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
     return null;
   }
 
+  Future<void> _pickPhoto() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 75,
+      );
+      if (file == null) return; // dibatalkan
+      final bytes = await file.readAsBytes();
+      if (bytes.length > kMaxPhotoBytes) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text(
+              'Ukuran foto terlalu besar (maks. 600 KB). Pilih foto lain.',
+            ),
+          ));
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _photo = bytes;
+        _photoMissing = false;
+      });
+    } catch (e) {
+      debugPrint('DestinationFormScreen._pickPhoto: $e');
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('Gagal membuka galeri. Coba lagi.'),
+        ));
+    }
+  }
+
   String? _validateDescription(String? value) {
     final t = (value ?? '').trim();
     if (t.isEmpty) return 'Deskripsi wajib diisi';
@@ -66,12 +113,18 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
 
   Future<void> _save() async {
     final form = _formKey.currentState;
-    if (form == null || !form.validate()) {
+    final photoOk = _photo != null;
+    if (!photoOk) setState(() => _photoMissing = true);
+    if (form == null || !form.validate() || !photoOk) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Ada isian yang belum benar. Periksa kolom merah.'),
+          SnackBar(
+            content: Text(
+              photoOk
+                  ? 'Ada isian yang belum benar. Periksa kolom merah.'
+                  : 'Foto destinasi wajib diunggah.',
+            ),
           ),
         );
       return;
@@ -84,6 +137,7 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
       name: name,
       category: _category,
       description: _description.text.trim(),
+      imageBytes: _photo,
     );
 
     setState(() => _saving = true);
@@ -104,6 +158,64 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
     }
   }
 
+  /// Pratinjau foto dan tombol unggah. Foto disimpan bersama data destinasi
+  /// di Firestore, lalu tampil di kartu sesuai destinasinya.
+  Widget _photoSection() {
+    final bytes = _photo;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Foto destinasi',
+          style: TextStyle(
+            color: kTextMuted,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: bytes == null
+                ? Container(
+                    color: kBorder,
+                    alignment: Alignment.center,
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined,
+                            size: 40, color: kPrimary),
+                        SizedBox(height: 6),
+                        Text(
+                          'Belum ada foto',
+                          style: TextStyle(color: kTextMuted),
+                        ),
+                      ],
+                    ),
+                  )
+                : Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true),
+          ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _pickPhoto,
+          icon: const Icon(Icons.photo_library_outlined),
+          label: Text(bytes == null ? 'Pilih foto dari galeri' : 'Ganti foto'),
+        ),
+        if (_photoMissing)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Foto destinasi wajib diunggah.',
+              style: TextStyle(color: kError, fontSize: 12.5),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,6 +234,8 @@ class _DestinationFormScreenState extends State<DestinationFormScreen> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
+              _photoSection(),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _name,
                 decoration: fieldDecoration(

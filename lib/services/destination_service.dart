@@ -36,9 +36,18 @@ class DestinationService extends ChangeNotifier {
         .snapshots()
         .listen(
       (snap) {
+        // Satu dokumen = satu destinasi. Dedupe per slug supaya satu data
+        // tidak pernah tampil dua kali.
+        final bySlug = <String, Destination>{};
+        for (final doc in snap.docs) {
+          bySlug.putIfAbsent(
+            doc.id,
+            () => Destination.fromMap(doc.id, doc.data()),
+          );
+        }
         _items
           ..clear()
-          ..addAll(snap.docs.map((d) => Destination.fromMap(d.id, d.data())));
+          ..addAll(bySlug.values);
         notifyListeners();
       },
       onError: (Object e) => debugPrint('DestinationService: $e'),
@@ -113,7 +122,10 @@ class DestinationService extends ChangeNotifier {
       ...d.toMap(),
       'order': _items.length,
     });
-    return _insert(d);
+    // Listener Firestore (snapshots) sering sudah memasukkan dokumen ini ke
+    // cache lokal begitu `set()` dipanggil. Tambahkan hanya jika belum ada,
+    // supaya data tidak tampil dobel.
+    return findBySlug(d.slug) ?? _insert(d);
   }
 
   /// Menyimpan perubahan destinasi ke Firestore lalu memperbarui cache lokal.
@@ -180,8 +192,17 @@ class DestinationService extends ChangeNotifier {
     return i;
   }
 
+  /// Menambah atau memperbarui destinasi di cache lokal berdasarkan slug.
+  /// Dipakai juga oleh [create] yang baru selesai menulis ke Firestore: pada
+  /// saat itu listener snapshot biasanya sudah memuat dokumen yang sama, jadi
+  /// tanpa pengecekan ini destinasi akan muncul dua kali.
   Destination _insert(Destination d) {
-    _items.add(d);
+    final i = _items.indexWhere((e) => e.slug == d.slug);
+    if (i == -1) {
+      _items.add(d);
+    } else {
+      _items[i] = d;
+    }
     notifyListeners();
     return d;
   }

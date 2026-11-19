@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 /// Kategori wisata (FR-02): daftar tetap yang tidak diubah lewat CRUD admin.
@@ -27,12 +30,17 @@ const List<Category> kCategories = [
 /// Field sengaja dibatasi hanya nama, kategori, dan deskripsi sesuai
 /// "Data Utama" pada mini SRS CampKu. Info camp dan tipe tenda ada di
 /// [Camp] dan [TentType] pada `camp_data.dart` dan `tent_data.dart`.
+/// Ukuran foto maksimal (byte) sebelum dikonversi ke base64. Dokumen Firestore
+/// dibatasi 1 MiB dan base64 membesarkan data ~33%, jadi dibatasi 600 KB.
+const int kMaxPhotoBytes = 600 * 1024;
+
 class Destination {
   const Destination({
     required this.slug,
     required this.name,
     required this.category,
     required this.description,
+    this.imageBytes,
   });
 
   /// Kunci unik, dipakai untuk relasi Camp, nama file foto, dan favorit.
@@ -42,15 +50,33 @@ class Destination {
   final String category;
   final String description;
 
+  /// Foto destinasi yang diunggah admin, disimpan di Firestore sebagai base64
+  /// pada field `image`. Null jika belum ada foto.
+  final Uint8List? imageBytes;
+
   factory Destination.fromMap(String id, Map<String, dynamic> m) => Destination(
         slug: id,
         name: m['name'] as String,
         category: m['category'] as String,
         description: m['description'] as String,
+        imageBytes: _decodeImage(m['image']),
       );
 
-  Map<String, dynamic> toMap() =>
-      {'name': name, 'category': category, 'description': description};
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'category': category,
+        'description': description,
+        if (imageBytes != null) 'image': base64Encode(imageBytes!),
+      };
+
+  static Uint8List? _decodeImage(Object? raw) {
+    if (raw is! String || raw.isEmpty) return null;
+    try {
+      return base64Decode(raw);
+    } on FormatException {
+      return null; // data foto rusak: tampil sebagai ilustrasi cadangan
+    }
+  }
 
   String get imageAsset => 'assets/images/$slug.jpg';
 

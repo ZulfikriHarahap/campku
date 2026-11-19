@@ -102,7 +102,10 @@ class TentService extends ChangeNotifier {
       ...t.toMap(),
       'order': _items.length,
     });
-    return _insert(t);
+    // Listener Firestore (snapshots) sering sudah memasukkan dokumen ini ke
+    // cache lokal begitu `set()` dipanggil. Tambahkan hanya jika belum ada,
+    // supaya data tidak tampil dobel.
+    return findById(t.id) ?? _insert(t);
   }
 
   /// Menyimpan perubahan tipe tenda ke Firestore lalu memperbarui cache lokal.

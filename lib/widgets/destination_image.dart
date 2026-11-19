@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:campku/theme/app_theme.dart';
 import 'package:campku/data/destinations_data.dart';
 
+/// Foto destinasi. Prioritas: foto yang diunggah admin (dari database), lalu
+/// aset lokal `assets/images/<slug>.jpg`, lalu ilustrasi lanskap.
 class DestinationImage extends StatelessWidget {
   const DestinationImage({super.key, required this.destination});
 
@@ -12,19 +14,36 @@ class DestinationImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final d = destination;
+    final bytes = d.imageBytes;
+
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        semanticLabel: d.name,
+        errorBuilder: (context, error, stackTrace) => _fallback(),
+      );
+    }
+
     return Image.asset(
-      destination.imageAsset,
+      d.imageAsset,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      semanticLabel: destination.name,
-      errorBuilder: (context, error, stackTrace) => LandscapeArt(
+      semanticLabel: d.name,
+      errorBuilder: (context, error, stackTrace) => _fallback(),
+    );
+  }
+
+  Widget _fallback() => LandscapeArt(
         category: destination.category,
         seed: destination.slug.codeUnits
             .fold<int>(7, (hash, unit) => (hash * 31 + unit) & 0x7fffffff),
-      ),
-    );
-  }
+      );
 }
 
 /// Ilustrasi lanskap sederhana. [seed] membuat tiap destinasi terlihat berbeda.

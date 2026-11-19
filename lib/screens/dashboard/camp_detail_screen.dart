@@ -78,7 +78,7 @@ class _CampDetailScreenState extends State<CampDetailScreen> {
       floatingActionButton: _isAdmin
           ? FloatingActionButton.extended(
               onPressed: _addTent,
-              backgroundColor: kAccent,
+              backgroundColor: kPrimary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Tenda'),

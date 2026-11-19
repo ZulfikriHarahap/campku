@@ -92,7 +92,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       floatingActionButton: _isAdmin
           ? FloatingActionButton.extended(
               onPressed: _addCamp,
-              backgroundColor: kAccent,
+              backgroundColor: kPrimary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Camp'),
